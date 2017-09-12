@@ -13,7 +13,7 @@ namespace StreamCompaction {
       static PerformanceTimer timer;
       return timer;
     }
-    // TODO: __global__
+
     __global__ void kernScan(int n, int* odata, int* idata, int shift) {
       int index = threadIdx.x + (blockIdx.x * blockDim.x);
       if (index >= n) {
@@ -51,15 +51,19 @@ namespace StreamCompaction {
       dim3 fullBlocksPerGrid((n + blockSize - 1) / blockSize);
 
       int* odata_swap;
-      int* idata_swap;
       cudaMalloc((void**)&odata_swap, n * sizeof(int));
-      checkCUDAError("cudaMalloc for idata_swap failed");
+      checkCUDAError("cudaMalloc for odata_swap failed");
+
+      int* idata_swap;
       cudaMalloc((void**)&idata_swap, n * sizeof(int));
       checkCUDAError("cudaMalloc for odata_swap failed");
 
       // Copy from CPU to GPU
       cudaMemcpy(odata_swap, odata, n * sizeof(int), cudaMemcpyHostToDevice);
+      checkCUDAError("cudaMemcpy for odata_swap failed");
+
       cudaMemcpy(idata_swap, idata, n * sizeof(int), cudaMemcpyHostToDevice);
+      checkCUDAError("cudaMemcpy for idata_swap failed");
 
       for (int depth = 1; depth <= ilog2ceil(n); depth++) {
         int shift = 1;
@@ -72,6 +76,7 @@ namespace StreamCompaction {
 
         // Swap buffers for next iteration
         cudaMemcpy(idata_swap, odata_swap, n * sizeof(int), cudaMemcpyDeviceToDevice);
+        checkCUDAError("cudaMemcpy to swap buffers failed");
       }
 
       kernExclusiveShift << <fullBlocksPerGrid, blockSize >> >(n, odata_swap, idata_swap);
@@ -79,6 +84,7 @@ namespace StreamCompaction {
 
       // Copy from GPU back to CPU
       cudaMemcpy(odata, odata_swap, n * sizeof(int), cudaMemcpyDeviceToHost);
+      checkCUDAError("cudaMemcpy for odata_swap failed");
 
       cudaFree(odata_swap);
       cudaFree(idata_swap);
