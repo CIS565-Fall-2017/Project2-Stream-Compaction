@@ -18,9 +18,19 @@ namespace StreamCompaction {
          * (Optional) For better understanding before starting moving to GPU, you can simulate your GPU scan in this function first.
          */
         void scan(int n, int *odata, const int *idata) {
-	        timer().startCpuTimer();
-            // TODO
-	        timer().endCpuTimer();
+	        //timer().startCpuTimer();
+          
+          // TODO
+          if (n <= 0) {
+            return;
+          }
+
+          odata[0] = 0;
+          for (int i = 1; i < n; i++) {
+            odata[i] = odata[i - 1] + idata[i - 1];
+          }
+	        
+          //timer().endCpuTimer();
         }
 
         /**
@@ -30,9 +40,18 @@ namespace StreamCompaction {
          */
         int compactWithoutScan(int n, int *odata, const int *idata) {
 	        timer().startCpuTimer();
-            // TODO
-	        timer().endCpuTimer();
-            return -1;
+          
+          // TODO
+          int count = 0;
+          for (int i = 0; i < n; i++) {
+            if (idata[i] != 0) {
+              odata[count] = idata[i];
+              count++;
+            }
+          }
+
+          timer().endCpuTimer();
+          return count;
         }
 
         /**
@@ -42,9 +61,37 @@ namespace StreamCompaction {
          */
         int compactWithScan(int n, int *odata, const int *idata) {
 	        timer().startCpuTimer();
-	        // TODO
-	        timer().endCpuTimer();
-            return -1;
+	        
+          // TODO
+          // Map the input array to array of 0s an 1s
+          int* arr1 = new int[n];
+          int* arr2 = new int[n];
+          for (int i = 0; i < n; i++) {
+            if (idata[i] != 0) {
+              arr1[i] = 1;
+            }
+            else {
+              arr1[i] = 0;
+            }
+          }
+
+          // Scan
+          scan(n, arr2, arr1);
+
+          // Scatter
+          int count = 0;
+          for (int i = 0; i < n; i++) {
+            if (arr1[i]) {
+              odata[arr2[i]] = idata[i];
+              count++;
+            }
+          }
+
+          delete[] arr1;
+          delete[] arr2;
+
+          timer().endCpuTimer();
+          return count;
         }
     }
 }
