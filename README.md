@@ -17,10 +17,11 @@ Different versions of the Scan (Prefix Sum) algorithm were implemented:
 ### Performance Analysis
 
 Optimal blocksize = 128
+Blocksizes from 32 to 1024 (exponentially) were tried on the implementations. The optimal blocksize value was 128 and 256.
 
 ![](img/GraphComparisons.PNG)
 
-Write a brief explanation of the phenomena you see here. Can you find the performance bottlenecks? Is it memory I/O? Computation? Is it different for each implementation?
+There wasn't a significant improvement in performance from Naive to Work-Efficient implementations until an array size of 2^16. This could be due to fewer calls to kernels in the Naive implementation. However, the Work-Efficient implementation is faster as the array size increases due to less computations.
 
 Scan Test Results:
 
