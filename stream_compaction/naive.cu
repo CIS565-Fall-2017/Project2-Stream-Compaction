@@ -3,6 +3,8 @@
 #include "common.h"
 #include "naive.h"
 
+#define blockSize 128
+
 namespace StreamCompaction {
     namespace Naive {
         using StreamCompaction::Common::PerformanceTimer;
@@ -12,15 +14,12 @@ namespace StreamCompaction {
             return timer;
         }
         // TODO
-		__global__ void kernNaiveScan(int n, int d, int *odata, const int *idata) 
+		__global__ void kernNaiveScan(int n, int val, int *odata, int *idata) 
 		{
-			int index = threadIdx.x;
+			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
 			if (index >= n) return;
 
-			int val = 1 << (d - 1);
-			for (int k = val; k < n; ++k) {
-				odata[k] = odata[k] + odata[k - val];
-			}
+			odata[index] = (n >= val) ? idata[index] + idata[index - val] : idata[index];
 		}
 
         /**
@@ -30,11 +29,34 @@ namespace StreamCompaction {
             timer().startGpuTimer();
 
             // TODO
-			for (int i = 0; i < n; ++i) odata[i] = idata[i];
+			int *dev_in;
+			int *dev_out;
+
+			dim3 blocksPerGrid((n + blockSize - 1) / blockSize);
+
+			cudaMalloc((void**)&dev_in, n * sizeof(int));
+			checkCUDAError("cudaMalloc dev_in failed!");
+
+			cudaMalloc((void**)&dev_out, n * sizeof(int));
+			checkCUDAError("cudaMalloc dev_in failed!");
+
+			cudaMemcpy(dev_in, idata, n * sizeof(int), cudaMemcpyHostToDevice);
+			checkCUDAError("cudaMemcpy dev_in failed!");
+			cudaMemcpy(dev_out, odata, n * sizeof(int), cudaMemcpyHostToDevice);
+			checkCUDAError("cudaMemcpy dev_out failed!");
+
 			for (int d = 1; d < ilog2ceil(n); ++d) {
-				kernNaiveScan << <1, n >> > (n, d, odata, idata);
+				int val = 1 << (d - 1);
+				kernNaiveScan << <blocksPerGrid, blockSize >> > (n, val, dev_out, dev_in);
+				std::swap(dev_in, dev_out);
+				checkCUDAError("kernNaiveScan failed!");
 			}
-			checkCUDAError("kernComputeIndices failed!");
+
+			cudaMemcpy(odata, dev_in, n * sizeof(int), cudaMemcpyDeviceToHost);
+			checkCUDAError("cudaMemcpyDeviceToHost failed!");
+
+			cudaFree(dev_in);
+			cudaFree(dev_out);
 
             timer().endGpuTimer();
         }
