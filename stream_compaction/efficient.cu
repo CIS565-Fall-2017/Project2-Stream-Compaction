@@ -44,22 +44,22 @@ namespace StreamCompaction {
       * Performs prefix-sum (aka scan) on idata, storing the result into odata.
       */
     void scan(int n, int *odata, const int *idata) {
-      timer().startGpuTimer();
-
       int maxN = (1 << ilog2ceil(n));
       dim3 fullBlocksPerGrid((maxN + blockSize - 1) / blockSize);
 
       int* idataSwap;
 
       cudaMalloc((void**)&idataSwap, maxN * sizeof(int));
-      checkCUDAError("cudaMalloc for idata_swap failed");
+      checkCUDAError("cudaMalloc for idataSwap failed");
 
       cudaMemset(idataSwap, 0, maxN * sizeof(int));
-      checkCUDAError("cudaMemset for idata_swap failed");
+      checkCUDAError("cudaMemset for idataSwap failed");
 
       // Copy from CPU to GPU
       cudaMemcpy(idataSwap, idata, n * sizeof(int), cudaMemcpyHostToDevice);
-      checkCUDAError("cudaMemcpy for idata_swap failed");
+      checkCUDAError("cudaMemcpy for idataSwap failed");
+
+      timer().startGpuTimer();
 
       // Up-sweep
       for (int depth = 0; depth < ilog2ceil(n); depth++) {
@@ -79,13 +79,13 @@ namespace StreamCompaction {
         checkCUDAError("kernUpSweep failed");
       }
 
+      timer().endGpuTimer();
+
       // Copy from GPU back to CPU
       cudaMemcpy(odata, idataSwap, n * sizeof(int), cudaMemcpyDeviceToHost);
-      checkCUDAError("cudaMemcpy for idata_swap failed");
+      checkCUDAError("cudaMemcpy for idataSwap failed");
 
       cudaFree(idataSwap);
-        
-      timer().endGpuTimer();
     }
 
     /**
@@ -98,7 +98,6 @@ namespace StreamCompaction {
       * @returns      The number of elements remaining after compaction.
       */
     int compact(int n, int *odata, const int *idata) {
-      timer().startGpuTimer();
         
       dim3 fullBlocksPerGrid((n + blockSize - 1) / blockSize);
 
@@ -117,7 +116,7 @@ namespace StreamCompaction {
 
       int* indicesArr;
       cudaMalloc((void**)&indicesArr, n * sizeof(int));
-      checkCUDAError("cudaMalloc for indicesArr failed");
+      checkCUDAError("cudaMalloc for scan_result failed");
 
       // Copy from CPU to GPU
       cudaMemcpy(odataSwap, odata, n * sizeof(int), cudaMemcpyHostToDevice);
@@ -125,6 +124,8 @@ namespace StreamCompaction {
 
       cudaMemcpy(idataSwap, idata, n * sizeof(int), cudaMemcpyHostToDevice);
       checkCUDAError("cudaMemcpy for idataSwap failed");
+
+      timer().startGpuTimer();
 
       // Map input array to a temp array of 0s and 1s
       StreamCompaction::Common::kernMapToBoolean << <fullBlocksPerGrid, blockSize >> >(n, boolsArr, idataSwap);
@@ -137,6 +138,8 @@ namespace StreamCompaction {
       StreamCompaction::Common::kernScatter << <fullBlocksPerGrid, blockSize >> >(n, odataSwap, idataSwap, boolsArr, indicesArr);
       checkCUDAError("kernScatter failed");
 
+      timer().endGpuTimer();
+
       // Copy over compacted data from GPU to CPU
       cudaMemcpy(odata, odataSwap, n * sizeof(int), cudaMemcpyDeviceToHost);
       checkCUDAError("cudaMemcpy for odataSwap failed");
@@ -147,16 +150,13 @@ namespace StreamCompaction {
 
 		  int remainingNIndices = 0;
 		  cudaMemcpy(&remainingNIndices, indicesArr + n - 1, sizeof(int), cudaMemcpyDeviceToHost);
-
-      int result = remainingNBools + remainingNIndices;
 	
       cudaFree(odataSwap);
       cudaFree(idataSwap);
       cudaFree(boolsArr);
       cudaFree(indicesArr);
         
-      timer().endGpuTimer();
-      return result;
+      return remainingNBools + remainingNIndices;
     }
   }
 }
