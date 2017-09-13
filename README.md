@@ -3,11 +3,27 @@ CUDA Stream Compaction
 
 **University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 2**
 
-* (TODO) YOUR NAME HERE
-* Tested on: (TODO) Windows 22, i7-2222 @ 2.22GHz 22GB, GTX 222 222MB (Moore 2222 Lab)
+* Ricky Rajani
+* Tested on: Windows 7, i7-6700 @ 3.40GHz 16GB, NVIDIA Quadro K620 (Moore 100C Lab)
 
-### (TODO: Your README)
+This project implements GPU stream compaction in CUDA, from scratch. The algorithm will later be used for acceleration a path trace project. The algorithms implemented take advantage of the GPU's massive parrallelism, specfically data parrallelism.
 
-Include analysis, etc. (Remember, this is public, so don't put
-anything here that you don't want to share with the world.)
+Different versions of the Scan (Prefix Sum) algorithm were implemented:
+- CPU version
+- "Naive"
+- "Work-efficient"
+- GPU stream compaction
 
+### Performance Analysis
+
+Optimal blocksize = 128
+
+![](img/Comparisons.PNG)
+
+Write a brief explanation of the phenomena you see here. Can you find the performance bottlenecks? Is it memory I/O? Computation? Is it different for each implementation?
+
+Scan Test Results:
+![](img/ScanTests.PNG)
+
+Stream Compaction Test Results:
+![](img/CompactionTests.PNG)
