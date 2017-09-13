@@ -81,11 +81,11 @@ namespace StreamCompaction {
       }
 
       kernExclusiveShift << <fullBlocksPerGrid, blockSize >> >(n, odataSwap, idataSwap);
-      checkCUDAError("kernInclusiveShift failed");
+      checkCUDAError("kernExclusiveShift failed");
 
       // Copy from GPU back to CPU
       cudaMemcpy(odata, odataSwap, n * sizeof(int), cudaMemcpyDeviceToHost);
-      checkCUDAError("cudaMemcpy for odata_swap failed");
+      checkCUDAError("cudaMemcpy for odataSwap failed");
 
       timer().endGpuTimer();
 
