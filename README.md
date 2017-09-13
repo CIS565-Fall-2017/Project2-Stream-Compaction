@@ -6,7 +6,7 @@ CUDA Stream Compaction
 * Ricky Rajani
 * Tested on: Windows 7, i7-6700 @ 3.40GHz 16GB, NVIDIA Quadro K620 (Moore 100C Lab)
 
-This project implements GPU stream compaction in CUDA, from scratch. The algorithm will later be used for acceleration a path trace project. The algorithms implemented take advantage of the GPU's massive parrallelism, specfically data parrallelism.
+This project implements GPU stream compaction in CUDA, from scratch. The algorithm will later be used for accelerating a path tracer project. The algorithms implemented take advantage of the GPU's massive parrallelism, specfically data parrallelism.
 
 Different versions of the Scan (Prefix Sum) algorithm were implemented:
 - CPU version
