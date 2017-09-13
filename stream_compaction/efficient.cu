@@ -101,7 +101,6 @@ namespace StreamCompaction {
         timer().startGpuTimer();
         
         dim3 fullBlocksPerGrid((n + blockSize - 1) / blockSize);
-        int remainingN = 0;
 
         // Allocate extra buffers
         int* odata_swap;
@@ -132,7 +131,7 @@ namespace StreamCompaction {
         checkCUDAError("kernMapToBoolean failed");
 
         // Scan
-        scan(n, indices_arr, idata_swap);
+        scan(n, indices_arr, bools_arr);
 
         // Scatter
         StreamCompaction::Common::kernScatter << <fullBlocksPerGrid, blockSize >> >(n, odata_swap, idata_swap, bools_arr, indices_arr);
@@ -142,13 +141,20 @@ namespace StreamCompaction {
         cudaMemcpy(odata, odata_swap, n * sizeof(int), cudaMemcpyDeviceToHost);
         checkCUDAError("cudaMemcpy for odata_swap failed");
 
+		// Grab remaining number of elements
+		int remainingNBools = 0;
+		cudaMemcpy(&remainingNBools, bools_arr + n - 1, sizeof(int), cudaMemcpyDeviceToHost);
+
+		int remainingNIndices = 0;
+		cudaMemcpy(&remainingNIndices, indices_arr + n - 1, sizeof(int), cudaMemcpyDeviceToHost);
+	
         cudaFree(odata_swap);
         cudaFree(idata_swap);
         cudaFree(bools_arr);
         cudaFree(indices_arr);
         
         timer().endGpuTimer();
-        return remainingN;
+        return remainingNBools + remainingNIndices;
     }
   }
 }
