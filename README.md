@@ -10,9 +10,9 @@ This project implements GPU stream compaction in CUDA, from scratch. The algorit
 
 Different versions of the Scan (Prefix Sum) algorithm were implemented:
 - CPU version
-- "Naive"
-- "Work-efficient"
-- GPU stream compaction
+- Naive
+- Work-efficient
+- Thrust
 
 ### Performance Analysis
 
