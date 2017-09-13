@@ -50,20 +50,20 @@ namespace StreamCompaction {
             
       dim3 fullBlocksPerGrid((n + blockSize - 1) / blockSize);
 
-      int* odata_swap;
-      cudaMalloc((void**)&odata_swap, n * sizeof(int));
-      checkCUDAError("cudaMalloc for odata_swap failed");
+      int* odataSwap;
+      cudaMalloc((void**)&odataSwap, n * sizeof(int));
+      checkCUDAError("cudaMalloc for odataSwap failed");
 
-      int* idata_swap;
-      cudaMalloc((void**)&idata_swap, n * sizeof(int));
-      checkCUDAError("cudaMalloc for odata_swap failed");
+      int* idataSwap;
+      cudaMalloc((void**)&idataSwap, n * sizeof(int));
+      checkCUDAError("cudaMalloc for idataSwap failed");
 
       // Copy from CPU to GPU
-      cudaMemcpy(odata_swap, odata, n * sizeof(int), cudaMemcpyHostToDevice);
-      checkCUDAError("cudaMemcpy for odata_swap failed");
+      cudaMemcpy(odataSwap, odata, n * sizeof(int), cudaMemcpyHostToDevice);
+      checkCUDAError("cudaMemcpy for odataSwap failed");
 
-      cudaMemcpy(idata_swap, idata, n * sizeof(int), cudaMemcpyHostToDevice);
-      checkCUDAError("cudaMemcpy for idata_swap failed");
+      cudaMemcpy(idataSwap, idata, n * sizeof(int), cudaMemcpyHostToDevice);
+      checkCUDAError("cudaMemcpy for idataSwap failed");
 
       for (int depth = 1; depth <= ilog2ceil(n); depth++) {
         int shift = 1;
@@ -71,23 +71,23 @@ namespace StreamCompaction {
           shift = 2 << (depth - 2);
         }
 
-        kernScan << <fullBlocksPerGrid, blockSize >> >(n, odata_swap, idata_swap, shift);
+        kernScan << <fullBlocksPerGrid, blockSize >> >(n, odataSwap, idataSwap, shift);
         checkCUDAError("kernScan failed");
 
         // Swap buffers for next iteration
-        cudaMemcpy(idata_swap, odata_swap, n * sizeof(int), cudaMemcpyDeviceToDevice);
+        cudaMemcpy(idataSwap, odataSwap, n * sizeof(int), cudaMemcpyDeviceToDevice);
         checkCUDAError("cudaMemcpy to swap buffers failed");
       }
 
-      kernExclusiveShift << <fullBlocksPerGrid, blockSize >> >(n, odata_swap, idata_swap);
+      kernExclusiveShift << <fullBlocksPerGrid, blockSize >> >(n, odataSwap, idataSwap);
       checkCUDAError("kernInclusiveShift failed");
 
       // Copy from GPU back to CPU
-      cudaMemcpy(odata, odata_swap, n * sizeof(int), cudaMemcpyDeviceToHost);
+      cudaMemcpy(odata, odataSwap, n * sizeof(int), cudaMemcpyDeviceToHost);
       checkCUDAError("cudaMemcpy for odata_swap failed");
 
-      cudaFree(odata_swap);
-      cudaFree(idata_swap);
+      cudaFree(odataSwap);
+      cudaFree(idataSwap);
 
       timer().endGpuTimer();
     }
