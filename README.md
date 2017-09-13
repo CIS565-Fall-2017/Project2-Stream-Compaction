@@ -24,6 +24,8 @@ Blocksizes from 32 to 1024 (exponentially) were tried on the implementations. Th
 
 There wasn't a significant improvement in performance from Naive to Work-Efficient implementations until an array size of 2^16. This could be due to fewer calls to kernels in the Naive implementation. However, the Work-Efficient implementation is faster as the array size increases due to less computations.
 
+Array size: 2^8
+
 Scan Test Results:
 
 ![](img/ScanTests.PNG)
