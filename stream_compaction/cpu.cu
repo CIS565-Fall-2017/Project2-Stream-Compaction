@@ -18,9 +18,23 @@ namespace StreamCompaction {
          * (Optional) For better understanding before starting moving to GPU, you can simulate your GPU scan in this function first.
          */
         void scan(int n, int *odata, const int *idata) {
-	        timer().startCpuTimer();
+			bool timerStarted = false;
+			try {
+				timer().startCpuTimer();
+			}
+			catch (const std::runtime_error& e) {
+				timerStarted = true;
+			}
             // TODO
-	        timer().endCpuTimer();
+			int sum = 0;
+			for (int i = 0; i < n; i++) {
+				odata[i] = sum;
+				sum += idata[i];
+			}
+
+			if (!timerStarted) {
+				timer().endCpuTimer();
+			}
         }
 
         /**
@@ -31,8 +45,18 @@ namespace StreamCompaction {
         int compactWithoutScan(int n, int *odata, const int *idata) {
 	        timer().startCpuTimer();
             // TODO
+			int counter = 0;
+			for (int i = 0; i < n; i++) {
+				int input = idata[i];
+				if (input != 0) {
+					odata[counter] = input;
+					counter++;
+				}
+			}
+			odata[counter] = '\0';
 	        timer().endCpuTimer();
-            return -1;
+
+            return counter;
         }
 
         /**
@@ -43,8 +67,32 @@ namespace StreamCompaction {
         int compactWithScan(int n, int *odata, const int *idata) {
 	        timer().startCpuTimer();
 	        // TODO
+			// Map to zeros and ones
+			int *onesAndZeros = (int*)malloc(n * sizeof(int));
+			for (int i = 0; i < n; i++) {
+				onesAndZeros[i] = (idata[i] == 0) ? 0 : 1;
+			}
+
+			// Scan
+			int *scanned = (int*)malloc(n * sizeof(int));
+			scan(n, scanned, onesAndZeros);
+
+			// Scatter
+			int counter = 0;
+			for (int i = 0; i < n; i++) {
+				if (onesAndZeros[i] == 1) {
+					int index = scanned[i];
+					odata[index] = idata[i];
+					counter++;
+				}
+			}
+			odata[counter] = '\0';
+
+			free(scanned);
+			free(onesAndZeros);
 	        timer().endCpuTimer();
-            return -1;
+
+            return counter;
         }
     }
 }
