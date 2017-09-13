@@ -17,7 +17,8 @@ Different versions of the Scan (Prefix Sum) algorithm were implemented:
 ### Performance Analysis
 
 Optimal blocksize = 128
-Blocksizes from 32 to 1024 (exponentially) were tried on the implementations. The optimal blocksize value was 128 and 256.
+
+Blocksizes from 32 to 1024 (exponentially) were tried on the implementations. The optimal blocksize values were 128 and 256.
 
 ![](img/GraphComparisons.PNG)
 
