@@ -18,12 +18,14 @@ Different versions of the Scan (Prefix Sum) algorithm were implemented:
 
 Optimal blocksize = 128
 
-![](img/Comparisons.PNG)
+![](img/GraphComparisons.PNG)
 
 Write a brief explanation of the phenomena you see here. Can you find the performance bottlenecks? Is it memory I/O? Computation? Is it different for each implementation?
 
 Scan Test Results:
+
 ![](img/ScanTests.PNG)
 
 Stream Compaction Test Results:
+
 ![](img/CompactionTests.PNG)
