@@ -61,7 +61,8 @@ namespace StreamCompaction {
 	        timer().startCpuTimer();
 	        // TODO
 
-			int* temp = new int[n];
+			int* temp = new int[n + 1];
+			temp[n] = 0;
 			int num = 0;
 			// compute temporary array
 			for (int i = 0; i < n; ++i) {
@@ -69,14 +70,14 @@ namespace StreamCompaction {
 			}
 			// run exclusive scan on temporary array
 			int sum = 0;
-			for (int i = 0; i < n; ++i) {
+			for (int i = 0; i <= n; ++i) {
 				int val = temp[i];
 				temp[i] = sum;
 				sum += val;
 			}
 
 			// scatter
-			for (int i = 1; i < n; ++i) {
+			for (int i = 1; i <= n; ++i) {
 				if (temp[i] != temp[i-1]) {
 					odata[num] = idata[i - 1];
 					num++;

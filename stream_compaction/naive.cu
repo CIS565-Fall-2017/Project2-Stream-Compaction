@@ -18,16 +18,14 @@ namespace StreamCompaction {
 		{
 			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
 			if (index >= n) return;
-
-			odata[index] = (n >= val) ? idata[index] + idata[index - val] : idata[index];
+			odata[index] = (index >= val) ? idata[index] + idata[index - val] : idata[index];
 		}
 
         /**
          * Performs prefix-sum (aka scan) on idata, storing the result into odata.
          */
         void scan(int n, int *odata, const int *idata) {
-            timer().startGpuTimer();
-
+            
             // TODO
 			int *dev_in;
 			int *dev_out;
@@ -45,20 +43,21 @@ namespace StreamCompaction {
 			cudaMemcpy(dev_out, odata, n * sizeof(int), cudaMemcpyHostToDevice);
 			checkCUDAError("cudaMemcpy dev_out failed!");
 
-			for (int d = 1; d < ilog2ceil(n); ++d) {
+			timer().startGpuTimer();
+			for (int d = 1; d <= ilog2ceil(n); ++d) {
 				int val = 1 << (d - 1);
 				kernNaiveScan << <blocksPerGrid, blockSize >> > (n, val, dev_out, dev_in);
 				std::swap(dev_in, dev_out);
 				checkCUDAError("kernNaiveScan failed!");
 			}
 
-			cudaMemcpy(odata, dev_in, n * sizeof(int), cudaMemcpyDeviceToHost);
+			timer().endGpuTimer();
+
+			cudaMemcpy(odata + 1, dev_in, n * sizeof(int), cudaMemcpyDeviceToHost);
 			checkCUDAError("cudaMemcpyDeviceToHost failed!");
 
 			cudaFree(dev_in);
 			cudaFree(dev_out);
-
-            timer().endGpuTimer();
         }
     }
 }
