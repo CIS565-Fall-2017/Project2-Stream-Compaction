@@ -96,10 +96,38 @@ namespace StreamCompaction {
          * @param idata  The array of elements to compact.
          * @returns      The number of elements remaining after compaction.
          */
-        int compact(int n, int *odata, const int *idata) {
-            timer().startGpuTimer();
-            // TODO
-            timer().endGpuTimer();
+        int compact(int n, int *odata, const int *idata) 
+		{
+			// TODO
+			int *bools;
+			int *dev_in;
+
+			cudaMalloc((void**)&bools, (n + 1) * sizeof(int));
+			checkCUDAError("cudaMalloc bools failed!");
+
+			cudaMalloc((void**)&dev_in, (n + 1) * sizeof(int));
+			checkCUDAError("cudaMalloc dev_in failed!");
+
+			cudaMemcpy(dev_in, idata, (n + 1) * sizeof(int), cudaMemcpyHostToDevice);
+			checkCUDAError("cudaMemcpy dev_in failed!");
+
+			timer().startGpuTimer();
+
+			dim3 blocksPerGrid((n + blockSize) / blockSize);
+			StreamCompaction::Common::kernMapToBoolean << <blocksPerGrid, blockSize >> > (n+1, bools, dev_in);
+			checkCUDAError("kernMapToBoolean failed!");
+
+			/*scan(n + 1, odata, bools);
+
+			dim3 blocksPerGrid((n + blockSize) / blockSize);
+			StreamCompaction::Common::kernScatter << <blocksPerGrid, blockSize >> > (n + 1, odata, idata, bools, indices);
+			checkCUDAError("kernScatter failed!");*/
+
+			timer().endGpuTimer();
+
+			cudaMemcpy(odata, dev_in, n * sizeof(int), cudaMemcpyDeviceToHost);
+			checkCUDAError("cudaMemcpyDeviceToHost failed!");
+            
             return -1;
         }
     }
