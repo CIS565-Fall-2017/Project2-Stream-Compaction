@@ -43,10 +43,10 @@ namespace StreamCompaction {
 			const int numbytes_copy = n * sizeof(int);
 
 			cudaMalloc((void**)&dev_data, numbytes_pow2roundedsize);
-			checkCUDAError("cudaMalloc dev_idata failed!");
+			checkCUDAError("cudaMalloc dev_data failed!");
 
 			cudaMemcpy(dev_data, idata, numbytes_copy, cudaMemcpyHostToDevice);
-			checkCUDAError("cudaMemcpy from idata to dev_idata failed!");
+			checkCUDAError("cudaMemcpy from idata to dev_data failed!");
 
 			const dim3 gridDims( (pow2roundedsize + blockSize - 1) / blockSize, 0, 0 );
 			const dim3 blockDims(blockSize, 0, 0);
@@ -62,8 +62,7 @@ namespace StreamCompaction {
 			}
 
 			//make sure last index value is 0 before we downsweep
-			cudaThreadSynchronize();
-			int zero = 0;
+			const int zero = 0;
 			cudaMemcpy(dev_data + pow2roundedsize - 1, &zero, sizeof(int), cudaMemcpyHostToDevice);
 			checkCUDAError("cudaMemcpy from zero to dev_data failed!");
 
@@ -72,7 +71,6 @@ namespace StreamCompaction {
 				kernScanDown<<<gridDims, blockDims>>>(pow2roundedsize, offset << 1, offset, dev_data);
 			}
             timer().endGpuTimer();
-			cudaThreadSynchronize();
 
 			cudaMemcpy(odata, dev_data, numbytes_copy, cudaMemcpyDeviceToHost);
 			checkCUDAError("cudaMemcpy from dev_data to odata failed!");
@@ -118,7 +116,6 @@ namespace StreamCompaction {
 
 			StreamCompaction::Common::kernMapToBoolean<<<gridDims, blockDims>>>(n, bools, dev_idata);
 
-			cudaThreadSynchronize();
 			cudaMemcpy(bools, dev_bools, numbytes_copy, cudaMemcpyDeviceToHost);
 			checkCUDAError("cudaMemcpy dev_bools to bools failed!");
 
@@ -127,8 +124,6 @@ namespace StreamCompaction {
 
             timer().endGpuTimer();
 			
-
-			cudaThreadSynchronize();
 			cudaMemcpy(odata, dev_odata, numbytes_copy, cudaMemcpyDeviceToHost);
 			const int size = indices[n - 1] + bools[n - 1]; 
 

@@ -35,15 +35,16 @@ namespace StreamCompaction {
          * Performs prefix-sum (aka scan) on idata, storing the result into odata.
          */
         void scan(const int n, int *odata, const int *idata) {
-			int* dev_idata;
-			int* dev_odata;
 			const int numbytes = n * sizeof(int);
 
+			int* dev_odata;
+			cudaMalloc((void**)&dev_odata, numbytes);
+			checkCUDAError("cudaMalloc dev_odata failed!");
+
+			int* dev_idata;
 			cudaMalloc((void**)&dev_idata, numbytes);
 			checkCUDAError("cudaMalloc dev_idata failed!");
 
-			cudaMalloc((void**)&dev_odata, numbytes);
-			checkCUDAError("cudaMalloc dev_odata failed!");
 
 			cudaMemcpy(dev_idata, idata, numbytes, cudaMemcpyHostToDevice);
 			checkCUDAError("cudaMemcpy from idata to dev_idata failed!");
@@ -58,14 +59,13 @@ namespace StreamCompaction {
 			for (int offset = 1; offset < n; offset <<= 1) {
 				//gridDims.x can probably = (n + blockSize - 1 - offset) / blockSize;
 				kernScanByLevel<<<gridDims, blockDims>>>(n, offset, dev_odata, dev_idata);
-				std::swap(dev_idata, dev_odata);
+				std::swap(dev_odata, dev_idata);
 			}
             timer().endGpuTimer();
 
 			//result is inclusive scan (includes the final reduction sum) 
 			//shift left and odata[0] = 0 to get exclusive scan (identity at index 0 and remove final reduction sum)
 			kernConvertToExclusiveScan<<<gridDims, blockDims>>>(n, dev_odata, dev_idata);
-			cudaThreadSynchronize();
 
 			cudaMemcpy(odata, dev_odata, numbytes, cudaMemcpyDeviceToHost);
 			checkCUDAError("cudaMemcpy from dev_odata to odata failed!");
