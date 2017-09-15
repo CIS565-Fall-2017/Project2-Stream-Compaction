@@ -3,8 +3,6 @@
 #include "common.h"
 #include "naive.h"
 
-//Block size used for CUDA kernel launch
-#define blockSize 128		//Change this for performance analysis
 
 namespace StreamCompaction {
     namespace Naive {
@@ -71,33 +69,24 @@ namespace StreamCompaction {
 			checkCUDAError("cudaMalloc outArray failed!");
 			cudaThreadSynchronize();	
 
-			//Copy data to GPU
-			//int firstOut = 0;
-			//int *firstOut = new int[n];
-			//firstOut[0] = 0;
-
+			//Copy input data to GPU
 			cudaMemcpy(inArray, idata, sizeof(int) * n, cudaMemcpyHostToDevice);
 
-			//cudaMemcpy(outArray, &firstOut, sizeof(int) * 1, cudaMemcpyHostToDevice);
-			//cudaMemcpy(outArray, firstOut, sizeof(int) * n, cudaMemcpyHostToDevice);
-			
 			for (int d = 1; d <= ilog2ceil(n); d++)
 			{
 				//Call kernel
-				//int factor = pow(2, d - 1);
 				int factor = 1 << (d - 1);
 				computeNaiveScanHelper<<<fullBlocksPerGrid, blockSize>>>(n, factor, outArray, inArray);
 
-				cudaThreadSynchronize();		//make sure the GPU finishes before the next iteration of the loop
+				//Make sure the GPU finishes before the next iteration of the loop
+				cudaThreadSynchronize();
 
 				//Swap arrays at each iteration
 				std::swap(outArray, inArray);
 			}
 
-			//Copy data back to CPU
-
-			//cudaMemcpy(odata, outArray, sizeof(int) * n, cudaMemcpyDeviceToHost);
-			
+			//Copy output data back to CPU
+			//Make sure you're copying from inArray since you swap them every iteration
 			odata[0] = 0;
 			cudaMemcpy(odata + 1, inArray, sizeof(int) * (n - 1), cudaMemcpyDeviceToHost);
 
