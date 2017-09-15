@@ -83,7 +83,6 @@ namespace StreamCompaction {
 			int *scanned = new int[n];
 			exclusiveScan(n, scanned, temp);
 
-
 			// Scatter
 			int numElements = 0;
 			for (int i = 0; i < n; i++) {
