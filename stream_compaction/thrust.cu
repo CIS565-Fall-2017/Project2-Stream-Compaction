@@ -19,31 +19,18 @@ namespace StreamCompaction {
          */
         void scan(int n, int *odata, const int *idata) {
 
-			//int *dev_in;
-			//int *dev_out;
+			thrust::host_vector<int> host_in = thrust::host_vector<int>(idata, idata + n);
+			thrust::host_vector<int> host_out = thrust::host_vector<int>(odata, odata + n);
 
-			//cudaMalloc((void**)&dev_in, n * sizeof(int));
-			//checkCUDAError("cudaMalloc dev_in failed!");
+			thrust::device_vector<int> dev_in = thrust::device_vector<int>(host_in);
+			thrust::device_vector<int> dev_out = thrust::device_vector<int>(host_out);
 
-			//cudaMalloc((void**)&dev_out, n * sizeof(int));
-			//checkCUDAError("cudaMalloc dev_out failed!");
+			// TODO
+            timer().startGpuTimer();
+			thrust::exclusive_scan(dev_in.begin(), dev_in.end(), dev_out.begin());
+			timer().endGpuTimer();
 
-			//cudaMemcpy(dev_in, idata, n * sizeof(int), cudaMemcpyHostToDevice);
-			//checkCUDAError("cudaMemcpy dev_in failed!");
-
-			//cudaMemcpy(dev_out, odata, n * sizeof(int), cudaMemcpyHostToDevice);
-			//checkCUDAError("cudaMemcpy dev_in failed!");
-
-   //         timer().startGpuTimer();
-   //         // TODO use `thrust::exclusive_scan`
-   //         // example: for device_vectors dv_in and dv_out:
-   //         // thrust::exclusive_scan(dv_in.begin(), dv_in.end(), dv_out.begin());
-			//thrust::exclusive_scan(dev_in, dev_in + n, dev_out);
-
-			//timer().endGpuTimer();
-
-			//cudaMemcpy(odata, dev_out, n * sizeof(int), cudaMemcpyDeviceToHost);
-			//checkCUDAError("cudaMemcpyDeviceToHost failed!");
+			thrust::copy(dev_out.begin(), dev_out.end(), odata);
 
         }
     }
