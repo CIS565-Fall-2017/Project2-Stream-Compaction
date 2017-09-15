@@ -3,8 +3,6 @@
 #include "common.h"
 #include "naive.h"
 
-#define blockSize 128
-
 namespace StreamCompaction {
     namespace Naive {
         using StreamCompaction::Common::PerformanceTimer;
@@ -13,7 +11,7 @@ namespace StreamCompaction {
             static PerformanceTimer timer;
             return timer;
         }
-        // TODO: __global__
+
 		__global__ void kernNaiveScan(int n, int i, int *dev_odata, int *dev_idata) {
 			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
 			if (index >= n) {
@@ -37,8 +35,6 @@ namespace StreamCompaction {
          * Performs prefix-sum (aka scan) on idata, storing the result into odata.
          */
         void scan(int n, int *odata, const int *idata) {
-            timer().startGpuTimer();
-            // TODO
 			int size = n * sizeof(int);
 
 			// Allocate buffers
@@ -54,6 +50,7 @@ namespace StreamCompaction {
 			checkCUDAError("cudaMemcpy idata failed", __LINE__);
 
 			// Call kernel
+            timer().startGpuTimer();
 			dim3 blocksPerGrid((n + blockSize - 1) / blockSize);
 			dim3 threadsPerBlock(blockSize);
 
@@ -69,6 +66,7 @@ namespace StreamCompaction {
 			}
 
 			kernShiftRight<<<blocksPerGrid, threadsPerBlock>>>(n, dev_odata, dev_idata);
+			timer().endGpuTimer();
 
 			// Copy output from device
 			cudaMemcpy(odata, dev_odata, size, cudaMemcpyDeviceToHost);
@@ -77,7 +75,6 @@ namespace StreamCompaction {
 			// Free buffers
 			cudaFree(dev_odata);
 			cudaFree(dev_idata);
-            timer().endGpuTimer();
         }
     }
 }

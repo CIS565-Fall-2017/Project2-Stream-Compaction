@@ -25,7 +25,7 @@ namespace StreamCompaction {
 			catch (const std::runtime_error& e) {
 				timerStarted = true;
 			}
-            // TODO
+
 			int sum = 0;
 			for (int i = 0; i < n; i++) {
 				odata[i] = sum;
@@ -44,7 +44,6 @@ namespace StreamCompaction {
          */
         int compactWithoutScan(int n, int *odata, const int *idata) {
 	        timer().startCpuTimer();
-            // TODO
 			int counter = 0;
 			for (int i = 0; i < n; i++) {
 				int input = idata[i];
@@ -66,7 +65,6 @@ namespace StreamCompaction {
          */
         int compactWithScan(int n, int *odata, const int *idata) {
 	        timer().startCpuTimer();
-	        // TODO
 			// Map to zeros and ones
 			int *onesAndZeros = (int*)malloc(n * sizeof(int));
 			for (int i = 0; i < n; i++) {
@@ -88,8 +86,10 @@ namespace StreamCompaction {
 			}
 			odata[counter] = '\0';
 
+			// Free memory
 			free(scanned);
 			free(onesAndZeros);
+
 	        timer().endCpuTimer();
 
             return counter;
