@@ -18,9 +18,27 @@ namespace StreamCompaction {
          * (Optional) For better understanding before starting moving to GPU, you can simulate your GPU scan in this function first.
          */
         void scan(int n, int *odata, const int *idata) {
-	        timer().startCpuTimer();
+			bool timerStarted = false;
+			try
+			{
+				timer().startCpuTimer();
+			}
+			catch (std::runtime_error &err)
+			{
+				timerStarted = true;
+			}
+			
             // TODO
-	        timer().endCpuTimer();
+
+			// Exclusive scan
+			odata[0] = 0;
+			for (int i = 1; i < n; i++) {
+				odata[i] = odata[i - 1] + idata[i - 1];
+			}
+
+			if (!timerStarted) {
+				timer().endCpuTimer();
+			}
         }
 
         /**
@@ -31,8 +49,17 @@ namespace StreamCompaction {
         int compactWithoutScan(int n, int *odata, const int *idata) {
 	        timer().startCpuTimer();
             // TODO
+
+			int idx = 0;
+			for (int i = 0; i < n; i++) {
+				if (idata[i] != 0) {
+					odata[idx] = idata[i];
+					idx++;
+				}
+			}
+			
 	        timer().endCpuTimer();
-            return -1;
+            return idx;
         }
 
         /**
@@ -43,8 +70,37 @@ namespace StreamCompaction {
         int compactWithScan(int n, int *odata, const int *idata) {
 	        timer().startCpuTimer();
 	        // TODO
-	        timer().endCpuTimer();
-            return -1;
+
+			// Create a temporary array 
+			int *temp = new int[n];
+			for (int i = 0; i < n; i++) {
+				if (idata[i] == 0) {
+					temp[i] = 0;
+				}
+				else {
+					temp[i] = 1;
+				}
+			}
+
+			// Exclusive Scan
+			int *scanned = new int[n];
+			scan(n, scanned, temp);
+
+
+			// Scatter
+			int numElements = 0;
+			for (int i = 0; i < n; i++) {
+				if (temp[i] == 1) {
+					odata[scanned[i]] = idata[i];
+					numElements++;
+				}
+			}
+
+			delete[]temp;
+			delete[]scanned;
+
+			timer().endCpuTimer();
+			return numElements;
         }
     }
 }
