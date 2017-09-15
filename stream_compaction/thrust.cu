@@ -22,6 +22,15 @@ namespace StreamCompaction {
             // TODO use `thrust::exclusive_scan`
             // example: for device_vectors dv_in and dv_out:
             // thrust::exclusive_scan(dv_in.begin(), dv_in.end(), dv_out.begin());
+
+
+  			//thrust::device_ptr<int> dev_thrust_keys(dev_intKeys);
+  			//thrust::device_ptr<int> dev_thrust_values(dev_intValues);
+
+            //dv_in = idata;
+            //dv_out = odata;
+
+
             timer().endGpuTimer();
         }
     }

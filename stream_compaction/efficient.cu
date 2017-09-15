@@ -20,7 +20,7 @@ namespace StreamCompaction {
 			{
 				if (index % factorPlusOne == 0)
 				{
-					idata[index + factorPlusOne - 1] += idata[index + factor - 1] ;
+					idata[index + factorPlusOne - 1] += idata[index + factor - 1];
 				}
 			}
 		}//end upSweep function
@@ -31,11 +31,6 @@ namespace StreamCompaction {
 
 			if (index < n)
 			{
-				//if (index == 0)
-				//{
-				//	idata[n - 1] = 0;
-				//}
-
 				if (index % factorPlusOne == 0)
 				{
 					int leftChild = idata[index + factor - 1];
@@ -63,73 +58,79 @@ namespace StreamCompaction {
             timer().startGpuTimer();
             
 			// TODO
-
-			dim3 fullBlocksPerGrid((n + blockSize - 1) / blockSize);
 			
-			int *inArray;	//for up sweep
-			cudaMalloc((void**)&inArray, n * sizeof(int));
+			//If non-power-of-two sized array, round to next power of two
+			int new_n;
+			int *new_idata;
+
+			if (n % 2 != 0)
+			{
+				new_n = 1 << ilog2ceil(n);//ilog2ceil(n) + n;	//<--- THIS IS WRONG
+				new_idata = new int[new_n];
+				
+				//fill the rest of the space with 0's
+				for (int i = 0; i <= new_n; i++)		//SHOULD THIS BE < or <=????
+				{
+					if (i < n)
+					{
+						new_idata[i] = idata[i];
+					}
+					else
+					{
+						new_idata[i] = 0;
+					}
+				}
+			}
+			else
+			{
+				new_n = n;
+				new_idata = new int[new_n];
+				cudaMemcpy(new_idata, idata, sizeof(int) * new_n, cudaMemcpyHostToHost);
+			}
+			
+			dim3 fullBlocksPerGrid((new_n + blockSize - 1) / blockSize);
+
+			int *inArray;
+			cudaMalloc((void**)&inArray, new_n * sizeof(int));
 			checkCUDAError("cudaMalloc inArray failed!");
 
-			int *inArray2;	//for down sweep
-			cudaMalloc((void**)&inArray2, n * sizeof(int));
-			checkCUDAError("cudaMalloc inArray2 failed!");
-
-			cudaThreadSynchronize();
-
 			//Copy input data to GPU
-			cudaMemcpy(inArray, idata, sizeof(int) * n, cudaMemcpyHostToDevice);
+			cudaMemcpy(inArray, new_idata, sizeof(int) * new_n, cudaMemcpyHostToDevice);
+			cudaThreadSynchronize();
+			
 
-			//ADD SOME CONDITION TO MAKE SURE INARRAY IS ALWAYS SIZE OF POWER OF TWO
 
 			//Up sweep
-			for (int d = 0; d <= ilog2ceil(n) - 1; d++)
+			for (int d = 0; d <= ilog2ceil(new_n) - 1; d++)
 			{
 				int factorOut = 1 << (d + 1);	//2^(d + 1)
 				int factorIn = 1 << d;			//2^d
-				upSweep<<<fullBlocksPerGrid, blockSize>>>(n, factorOut, factorIn, inArray);
+				upSweep<<<fullBlocksPerGrid, blockSize>>>(new_n, factorOut, factorIn, inArray);
 
 				//Make sure the GPU finishes before the next iteration of the loop
 				cudaThreadSynchronize();
 			}
 
 			//Down sweep
-
-			//Can you not send CPU arrays into a kernel? Yeah probs not, sounds stupid
-			//Is there a better way to do this? Should I just make a kernel of one block???
-
-			//odata[n - 1] = 0;
-			//cudaMemcpy(odata, inArray, sizeof(int) * (n - 1), cudaMemcpyDeviceToHost);
-			//cudaMemcpy(inArray2, odata, sizeof(int) * (n), cudaMemcpyHostToDevice);
-
-			//Previous way is stupid with 2 memcpy's. Expensive to bring back to host. Do this instead.
 			int lastElem = 0;
-			cudaMemcpy(inArray + (n - 1), &lastElem, sizeof(int) * 1, cudaMemcpyHostToDevice);
+			cudaMemcpy(inArray + (new_n - 1), &lastElem, sizeof(int) * 1, cudaMemcpyHostToDevice);
 
-			for (int d = ilog2ceil(n) - 1; d >= 0; d--)
+			for (int d = ilog2ceil(new_n) - 1; d >= 0; d--)
 			{
 				int factorPlusOne = 1 << (d + 1);	//2^(d + 1)
 				int factor = 1 << d;				//2^d
-
-				downSweep<<<fullBlocksPerGrid, blockSize>>>(n, factorPlusOne, factor, inArray);
-				//downSweep<<<fullBlocksPerGrid, blockSize>>>(n, factorPlusOne, factor, inArray2);
-
+				downSweep<<<fullBlocksPerGrid, blockSize>>>(new_n, factorPlusOne, factor, inArray);
 				cudaThreadSynchronize();
 			}
 
-
-
-
 			//Transfer to odata
-			cudaMemcpy(odata, inArray, sizeof(int) * (n), cudaMemcpyDeviceToHost);
-			//cudaMemcpy(odata, inArray2, sizeof(int) * (n), cudaMemcpyDeviceToHost);
-
+			cudaMemcpy(odata, inArray, sizeof(int) * (new_n), cudaMemcpyDeviceToHost);
 
 			//Free the temp device array
 			cudaFree(inArray);
-			cudaFree(inArray2);
 
             timer().endGpuTimer();
-        }
+        }//end scan function 
 
         /**
          * Performs stream compaction on idata, storing the result into odata.
@@ -145,6 +146,6 @@ namespace StreamCompaction {
             // TODO
             timer().endGpuTimer();
             return -1;
-        }
-    }
-}
+        }//end compact function
+    }//end namespace Efficient
+}//end namespace StreamCompaction
