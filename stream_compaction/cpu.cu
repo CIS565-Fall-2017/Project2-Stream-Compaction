@@ -17,13 +17,16 @@ namespace StreamCompaction {
          * For performance analysis, this is supposed to be a simple for loop.
          * (Optional) For better understanding before starting moving to GPU, you can simulate your GPU scan in this function first.
          */
-        void scan(int n, int *odata, const int *idata) {
-	        timer().startCpuTimer();
+		void scan_implementation(const int n, int* odata, const int* idata) {
 			if (n <= 0) return;
 			odata[0] = 0; //set first element to identity in exclusive scan
 			for (int i = 1; i < n; ++i) {
 				odata[i] = odata[i - 1] + idata[i - 1];
 			}
+		}
+        void scan(const int n, int *odata, const int *idata) {
+	        timer().startCpuTimer();
+			scan_implementation(n, odata, idata);
 	        timer().endCpuTimer();
         }
 
@@ -32,11 +35,11 @@ namespace StreamCompaction {
          *
          * @returns the number of elements remaining after compaction.
          */
-        int compactWithoutScan(int n, int *odata, const int *idata) {
+        int compactWithoutScan(const int n, int *odata, const int *idata) {
 	        timer().startCpuTimer();
 			int index = 0;
 			for (int i = 0; i < n; ++i) {
-				if (idata[i] != 0) odata[index++] = idata[i];
+				if (idata[i] != 0) { odata[index++] = idata[i]; }
 			}
 	        timer().endCpuTimer();
 			return index;
@@ -47,25 +50,25 @@ namespace StreamCompaction {
          *
          * @returns the number of elements remaining after compaction.
          */
-        int compactWithScan(int n, int *odata, const int *idata) {
+        int compactWithScan(const int n, int *odata, const int *idata) {
+
+			int* bools = new int[n];
+			int* indices = new int[n];
+
 	        timer().startCpuTimer();
-
-			int* isNonZero = new int[n];
-			int* isNonZeroScan = new int[n];
 			for (int i = 0; i < n; ++i) {
-				isNonZero[i] = idata[i] == 0 ? 0 : 1;
+				bools[i] = idata[i] == 0 ? 0 : 1;
 			}
-			scan(n, isNonZeroScan, isNonZero);
-			int size = isNonZero[n - 1] + isNonZeroScan[n - 1];
+			scan_implementation(n, indices, bools);
+			int size = bools[n - 1] + indices[n - 1];
 
-			int index = 0;
 			for (int i = 0; i < n; ++i) {
-				if (isNonZero[i] == 1) odata[isNonZeroScan[i]] = idata[i];
+				if (bools[i] == 1) { odata[indices[i]] = idata[i]; }
 			}
-			delete[] isNonZero;
-			delete[] isNonZeroScan;
-
 	        timer().endCpuTimer();
+
+			delete[] bools;
+			delete[] indices;
 			return size;
         }
     }
