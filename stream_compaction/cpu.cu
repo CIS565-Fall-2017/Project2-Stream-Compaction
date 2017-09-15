@@ -19,7 +19,11 @@ namespace StreamCompaction {
          */
         void scan(int n, int *odata, const int *idata) {
 	        timer().startCpuTimer();
-            // TODO
+			if (n <= 0) return;
+			odata[0] = 0; //set first element to identity in exclusive scan
+			for (int i = 1; i < n; ++i) {
+				odata[i] = odata[i - 1] + idata[i - 1];
+			}
 	        timer().endCpuTimer();
         }
 
@@ -30,9 +34,12 @@ namespace StreamCompaction {
          */
         int compactWithoutScan(int n, int *odata, const int *idata) {
 	        timer().startCpuTimer();
-            // TODO
+			int index = 0;
+			for (int i = 0; i < n; ++i) {
+				if (idata[i] != 0) odata[index++] = idata[i];
+			}
 	        timer().endCpuTimer();
-            return -1;
+			return index;
         }
 
         /**
@@ -42,9 +49,24 @@ namespace StreamCompaction {
          */
         int compactWithScan(int n, int *odata, const int *idata) {
 	        timer().startCpuTimer();
-	        // TODO
+
+			int* isNonZero = new int[n];
+			int* isNonZeroScan = new int[n];
+			for (int i = 0; i < n; ++i) {
+				isNonZero[i] = idata[i] == 0 ? 0 : 1;
+			}
+			scan(n, isNonZeroScan, isNonZero);
+			int size = isNonZero[n - 1] + isNonZeroScan[n - 1];
+
+			int index = 0;
+			for (int i = 0; i < n; ++i) {
+				if (isNonZero[i] == 1) odata[isNonZeroScan[i]] = idata[i];
+			}
+			delete[] isNonZero;
+			delete[] isNonZeroScan;
+
 	        timer().endCpuTimer();
-            return -1;
+			return size;
         }
     }
 }
