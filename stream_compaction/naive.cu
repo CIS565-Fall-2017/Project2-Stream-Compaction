@@ -23,7 +23,7 @@ namespace StreamCompaction {
 				return;
 			}
 			int twoPower = (int)powf(2.0f, d);
-			odata[index] = (index >= twoPower) ? idata[index - twoPower] + idata[index] : 0;
+			odata[index] = (index >= twoPower) ? idata[index - twoPower] + idata[index] : idata[index];
 		}
 
 		__global__ void kernShiftInclusiveToExclusive(int n, int *odata, const int *idata) {
@@ -67,9 +67,9 @@ namespace StreamCompaction {
 				dev_odata = tmpBuffer;
 			}
 			//At this point, our final array is in dev_idata
-			//kernShiftInclusiveToExclusive << <fullBlocks, blockSize >> > (n, dev_odata, dev_idata);
+			kernShiftInclusiveToExclusive << <fullBlocks, blockSize >> > (n, dev_odata, dev_idata);
 
-			cudaMemcpy(odata, dev_idata, n * sizeof(int), cudaMemcpyDeviceToHost);
+			cudaMemcpy(odata, dev_odata, n * sizeof(int), cudaMemcpyDeviceToHost);
 			checkCUDAError("cudaMemcpy failed!");
 			
 			//Free buffers
