@@ -19,7 +19,13 @@ namespace StreamCompaction {
          */
         void scan(int n, int *odata, const int *idata) {
 	        timer().startCpuTimer();
-            // TODO
+
+          odata[0] = 0;
+          for (int i = 1; i < n; ++i)
+          {
+            odata[i] = idata[i - 1] + odata[i - 1];
+          }
+          
 	        timer().endCpuTimer();
         }
 
@@ -30,9 +36,17 @@ namespace StreamCompaction {
          */
         int compactWithoutScan(int n, int *odata, const int *idata) {
 	        timer().startCpuTimer();
-            // TODO
-	        timer().endCpuTimer();
-            return -1;
+          int index = 0;
+          for (int i = 0; i < n; ++i)
+          {
+            if (idata[i])
+            {
+              odata[index] = idata[i];
+              index++;
+            }
+          }
+          timer().endCpuTimer();
+          return index;
         }
 
         /**
@@ -42,9 +56,35 @@ namespace StreamCompaction {
          */
         int compactWithScan(int n, int *odata, const int *idata) {
 	        timer().startCpuTimer();
-	        // TODO
-	        timer().endCpuTimer();
-            return -1;
+
+          int* tempScanArray = (int*) malloc(sizeof(int) * n);
+          int* tempScanResultArray = (int*) malloc(sizeof(int) * n);
+
+          // Create temporary array
+          for (int i = 0; i < n; ++i)
+          {
+            tempScanArray[i] = (idata[i]) ? 1 : 0;
+          }
+
+          // Included exclusive scan implementation here in order to avoid the conflict with multiple timers:
+          tempScanResultArray[0] = 0;
+          for (int i = 1; i < n; ++i)
+          {
+            tempScanResultArray[i] = tempScanArray[i - 1] + tempScanResultArray[i - 1];
+          }
+
+          // Scatter
+          for (int i = 0; i < n; ++i)
+          {
+            if (tempScanArray[i])
+            {
+              odata[tempScanResultArray[i]] = idata[i];
+            }
+          }
+
+          int compactSize = (tempScanArray[n - 1]) ? tempScanResultArray[n - 1] + 1 : tempScanResultArray[n - 1];
+          timer().endCpuTimer();
+          return compactSize;
         }
     }
 }
