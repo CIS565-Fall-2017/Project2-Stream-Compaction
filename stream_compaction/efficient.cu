@@ -22,7 +22,7 @@ namespace StreamCompaction {
 			}
 
 			index *= pow2dPlus1;
-			if(index < n)
+			if (index < n)
 				odata[index + pow2dPlus1 - 1] += odata[index + pow2d - 1];
 		}
 
@@ -66,8 +66,12 @@ namespace StreamCompaction {
 				upSweep << < fullBlocksPerGrid, blocksize >> > (n, pow2dPlus1, pow2d, out);
 			}
 
-			// Down-Sweep
+			// Gotta find a better solution to this. lol
+			cudaMemcpy(odata, out, sizeof(int) * n, cudaMemcpyDeviceToHost);
 			odata[n - 1] = 0;
+			cudaMemcpy(out, odata, sizeof(int) * n, cudaMemcpyHostToDevice);
+
+			// Down-Sweep
 			for (int d = ilog2ceil(n) - 1; d >= 0; d--) {
 				int pow2dPlus1 = pow(2, d + 1);
 				int pow2d = pow(2, d);
