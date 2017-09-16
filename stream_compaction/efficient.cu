@@ -163,28 +163,47 @@ namespace StreamCompaction {
 		int compact(int n, int *odata, const int *idata) {
 			dim3 fullBlocksPerGrid((n + blocksize - 1) / blocksize);
 
+			// Get the next power of 2
+			int currPow = ilog2ceil(n) - 1;
+			int nextPow = 2 << currPow;
+
+			int diff = nextPow - n;
+
+			//int *temp = new int[nextPow];
+			//for (int i = 0; i < nextPow; i++) {
+			//	if (i < n) {
+			//		temp[i] = idata[i];
+			//	}
+			//	// Fill the rest of the array with 0 if not a power of 2.
+			//	else {
+			//		temp[i] = 0;
+			//	}
+			//}
+
 			int *dev_in;
-			cudaMalloc((void**)&dev_in, sizeof(int) * n);
-			cudaMemcpy(dev_in, idata, sizeof(int) * n, cudaMemcpyHostToDevice);
+			cudaMalloc((void**)&dev_in, sizeof(int) * nextPow);
+			cudaMemcpy(dev_in, idata, sizeof(int) * nextPow, cudaMemcpyHostToDevice);
 
 			int *dev_out;
-			cudaMalloc((void**)&dev_out, sizeof(int) * n);
+			cudaMalloc((void**)&dev_out, sizeof(int) * nextPow);
 
 			int *dev_indices;
-			cudaMalloc((void**)&dev_indices, sizeof(int) * n);
+			cudaMalloc((void**)&dev_indices, sizeof(int) * nextPow);
 
-			int *bools = new int[n];
+			int *bools = new int[nextPow];
 			int *dev_bools;
-			cudaMalloc((void**)&dev_bools, sizeof(int) * n);
+			cudaMalloc((void**)&dev_bools, sizeof(int) * nextPow);
 
 			timer().startGpuTimer();
 			// TODO
 
-			StreamCompaction::Common::kernMapToBoolean << < fullBlocksPerGrid, blocksize >> > (n, dev_bools, dev_in);
-			cudaMemcpy(bools, dev_bools, sizeof(int) * n, cudaMemcpyDeviceToHost);
+			StreamCompaction::Common::kernMapToBoolean << < fullBlocksPerGrid, blocksize >> > (nextPow, dev_bools, dev_in);
+			cudaMemcpy(bools, dev_bools, sizeof(int) * nextPow, cudaMemcpyDeviceToHost);
 
-			exclusiveScan(n, dev_indices, bools);
+			exclusiveScan(nextPow, dev_indices, bools);
 
+			// Says passed but I'm not convinced why this worked.
+			// Gotta test this more.
 			int numElements = 0;
 			for (int i = 0; i < n; i++) {
 				if (bools[i] == 1) {
@@ -192,11 +211,11 @@ namespace StreamCompaction {
 				}
 			}
 
-			StreamCompaction::Common::kernScatter << < fullBlocksPerGrid, blocksize >> > (n, dev_out, dev_in, dev_bools, dev_indices);
+			StreamCompaction::Common::kernScatter << < fullBlocksPerGrid, blocksize >> > (nextPow, dev_out, dev_in, dev_bools, dev_indices);
 
 			timer().endGpuTimer();
 
-			cudaMemcpy(odata, dev_out, sizeof(int) * n, cudaMemcpyDeviceToHost);
+			cudaMemcpy(odata, dev_out, sizeof(int) * nextPow, cudaMemcpyDeviceToHost);
 
 			cudaFree(dev_in);
 			cudaFree(dev_out);
