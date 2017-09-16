@@ -38,6 +38,7 @@ int main(int argc, char* argv[]) {
     printElapsedTime(StreamCompaction::CPU::timer().getCpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
     printArray(SIZE, b, true);
 
+	
     zeroArray(SIZE, c);
     printDesc("cpu scan, non-power-of-two");
     StreamCompaction::CPU::scan(NPOT, c, a);
@@ -49,14 +50,17 @@ int main(int argc, char* argv[]) {
     printDesc("naive scan, power-of-two");
     StreamCompaction::Naive::scan(SIZE, c, a);
     printElapsedTime(StreamCompaction::Naive::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
-    //printArray(SIZE, c, true);
+	//printArray(SIZE, a, true);
+	//printArray(SIZE, b, true);
     printCmpResult(SIZE, b, c);
 
     zeroArray(SIZE, c);
     printDesc("naive scan, non-power-of-two");
     StreamCompaction::Naive::scan(NPOT, c, a);
     printElapsedTime(StreamCompaction::Naive::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
-    //printArray(SIZE, c, true);
+	//printArray(SIZE, a, true);
+	//printArray(SIZE, b, true);
+	//printArray(SIZE, c, true);
     printCmpResult(NPOT, b, c);
 
     zeroArray(SIZE, c);
