@@ -1,0 +1,120 @@
+////gpu compact includes some memory alloc time
+24
+==== cpu scan, power-of-two ====
+   elapsed time: 120.979ms    (std::chrono Measured)
+==== cpu scan, non-power-of-two ====
+   elapsed time: 123.912ms    (std::chrono Measured)
+==== naive scan, power-of-two ====
+   elapsed time: 54.2147ms    (CUDA Measured)
+==== naive scan, non-power-of-two ====
+   elapsed time: 54.2108ms    (CUDA Measured)
+==== work-efficient scan, power-of-two ====
+   elapsed time: 22.5794ms    (CUDA Measured)
+==== work-efficient scan, non-power-of-two ====
+   elapsed time: 22.5499ms    (CUDA Measured)
+==== thrust scan, power-of-two ====
+   elapsed time: 4.55078ms    (CUDA Measured)
+==== thrust scan, non-power-of-two ====
+   elapsed time: 4.7071ms    (CUDA Measured)
+
+==== cpu compact without scan, power-of-two ====
+   elapsed time: 160.608ms    (std::chrono Measured)
+==== cpu compact without scan, non-power-of-two ====
+   elapsed time: 175.537ms    (std::chrono Measured)
+==== cpu compact with scan ====
+   elapsed time: 450.59ms    (std::chrono Measured)
+==== work-efficient compact, power-of-two ====
+   elapsed time: 243.312ms    (CUDA Measured)
+==== work-efficient compact, non-power-of-two ====
+   elapsed time: 204.222ms    (CUDA Measured)
+
+
+20
+==== cpu scan, power-of-two ====
+   elapsed time: 7.4402ms    (std::chrono Measured)
+==== cpu scan, non-power-of-two ====
+   elapsed time: 7.72662ms    (std::chrono Measured)
+==== naive scan, power-of-two ====
+   elapsed time: 2.85504ms    (CUDA Measured)
+==== naive scan, non-power-of-two ====
+   elapsed time: 2.84886ms    (CUDA Measured)
+==== work-efficient scan, power-of-two ====
+   elapsed time: 1.744ms    (CUDA Measured)
+==== work-efficient scan, non-power-of-two ====
+   elapsed time: 1.82432ms    (CUDA Measured)
+==== thrust scan, power-of-two ====
+   elapsed time: 1.04432ms    (CUDA Measured)
+==== thrust scan, non-power-of-two ====
+   elapsed time: 1.08717ms    (CUDA Measured)
+
+==== cpu compact without scan, power-of-two ====
+   elapsed time: 12.1533ms    (std::chrono Measured)
+==== cpu compact without scan, non-power-of-two ====
+   elapsed time: 10.3534ms    (std::chrono Measured)
+==== cpu compact with scan ====
+   elapsed time: 27.1151ms    (std::chrono Measured)
+==== work-efficient compact, power-of-two ====
+   elapsed time: 18.8116ms    (CUDA Measured)
+==== work-efficient compact, non-power-of-two ====
+   elapsed time: 16.9002ms    (CUDA Measured)
+
+
+16
+==== cpu scan, power-of-two ====
+   elapsed time: 0.422321ms    (std::chrono Measured)
+==== cpu scan, non-power-of-two ====
+   elapsed time: 0.459852ms    (std::chrono Measured)
+==== naive scan, power-of-two ====
+   elapsed time: 0.138048ms    (CUDA Measured)
+==== naive scan, non-power-of-two ====
+   elapsed time: 0.136896ms    (CUDA Measured)
+==== work-efficient scan, power-of-two ====
+   elapsed time: 0.436192ms    (CUDA Measured)
+==== work-efficient scan, non-power-of-two ====
+   elapsed time: 0.431136ms    (CUDA Measured)
+==== thrust scan, power-of-two ====
+   elapsed time: 0.899712ms    (CUDA Measured)
+==== thrust scan, non-power-of-two ====
+   elapsed time: 0.980256ms    (CUDA Measured)
+
+==== cpu compact without scan, power-of-two ====
+   elapsed time: 0.758914ms    (std::chrono Measured)
+==== cpu compact without scan, non-power-of-two ====
+   elapsed time: 0.750222ms    (std::chrono Measured)
+==== cpu compact with scan ====
+   elapsed time: 1.89314ms    (std::chrono Measured)
+==== work-efficient compact, power-of-two ====
+   elapsed time: 3.30154ms    (CUDA Measured)
+==== work-efficient compact, non-power-of-two ====
+   elapsed time: 2.0185ms    (CUDA Measured)
+
+
+
+8
+==== cpu scan, power-of-two ====
+   elapsed time: 0.00237ms    (std::chrono Measured)
+==== cpu scan, non-power-of-two ====
+   elapsed time: 0.001975ms    (std::chrono Measured)
+==== naive scan, power-of-two ====
+   elapsed time: 0.039072ms    (CUDA Measured)
+==== naive scan, non-power-of-two ====
+   elapsed time: 0.038496ms    (CUDA Measured)
+==== work-efficient scan, power-of-two ====
+   elapsed time: 0.459456ms    (CUDA Measured)
+==== work-efficient scan, non-power-of-two ====
+   elapsed time: 0.273856ms    (CUDA Measured)
+==== thrust scan, power-of-two ====
+   elapsed time: 0.02336ms    (CUDA Measured)
+==== thrust scan, non-power-of-two ====
+   elapsed time: 0.013344ms    (CUDA Measured)
+
+==== cpu compact without scan, power-of-two ====
+   elapsed time: 0.00316ms    (std::chrono Measured)
+==== cpu compact without scan, non-power-of-two ====
+   elapsed time: 0.003555ms    (std::chrono Measured)
+==== cpu compact with scan ====
+   elapsed time: 0.006716ms    (std::chrono Measured)
+==== work-efficient compact, power-of-two ====
+   elapsed time: 0.743808ms    (CUDA Measured)
+==== work-efficient compact, non-power-of-two ====
+   elapsed time: 0.744192ms    (CUDA Measured)
