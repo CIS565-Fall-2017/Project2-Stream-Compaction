@@ -51,7 +51,7 @@ namespace StreamCompaction {
 			int currPow = ilog2ceil(n) - 1;
 			int nextPow = 2 << currPow;
 
-			int *temp;
+			int *temp = new int[nextPow];
 			for (int i = 0; i < nextPow; i++) {
 				if (i < n) {
 					temp[i] = idata[i];
@@ -90,11 +90,11 @@ namespace StreamCompaction {
 				downSweep << < fullBlocksPerGrid, blocksize >> > (nextPow, pow2dPlus1, pow2d, out);
 			}
 
-			cudaMemcpy(odata, out, sizeof(int) * nextPow, cudaMemcpyDeviceToHost);
-
-			cudaFree(out);
-
             timer().endGpuTimer();
+
+			cudaMemcpy(odata, out, sizeof(int) * nextPow, cudaMemcpyDeviceToHost);
+			delete[]temp;
+			cudaFree(out);
         }
 
         /**

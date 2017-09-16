@@ -51,10 +51,10 @@ namespace StreamCompaction {
 			int *out;
 			cudaMalloc((void**)&in, n * sizeof(int));
 			cudaMalloc((void**)&out, n * sizeof(int));
+			cudaMemcpy(in, idata, sizeof(int) * n, cudaMemcpyHostToDevice);
 
 			timer().startGpuTimer();
             // TODO
-			cudaMemcpy(in, idata, sizeof(int) * n, cudaMemcpyHostToDevice);
 
 			for (int d = 1; d <= ilog2ceil(n); d++) {
 				int pow2dMinus1 = pow(2, d - 1);
@@ -66,12 +66,12 @@ namespace StreamCompaction {
 
 			// Shift to the right
 			inclusiveToExclusive << < fullBlocksPerGrid, blocksize >> > (n, in, out);
-			
+            
+			timer().endGpuTimer();
+
 			// Copy final values into odata
 			cudaMemcpy(odata, out, sizeof(int) * n, cudaMemcpyDeviceToHost);
-			
-            timer().endGpuTimer();
-        
+
 			cudaFree(in);
 			cudaFree(out);
 		}
