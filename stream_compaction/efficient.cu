@@ -3,6 +3,8 @@
 #include "common.h"
 #include "efficient.h"
 
+//static int usetimer = 1;
+
 namespace StreamCompaction {
     namespace Efficient {
         using StreamCompaction::Common::PerformanceTimer;
@@ -48,17 +50,17 @@ namespace StreamCompaction {
 			cudaMemcpy(dev_data, idata, numbytes_copy, cudaMemcpyHostToDevice);
 			checkCUDAError("cudaMemcpy from idata to dev_data failed!");
 
-			const dim3 gridDims( (pow2roundedsize + blockSize - 1) / blockSize, 0, 0 );
-			const dim3 blockDims(blockSize, 0, 0);
+			int gridDim = (pow2roundedsize + blockSize - 1) / blockSize;
 
 			//the algo works on pow2 sized arrays so we size up the array to the next pow 2 if it wasn't a pow of 2 to begin with
 			//then we need to fill data after index n-1 with zeros 
-			kernZeroExcessLeaves<<<gridDims, blockDims>>>(pow2roundedsize, n, dev_data);
+			kernZeroExcessLeaves<<<gridDim, blockSize>>>(pow2roundedsize, n, dev_data);
 
-            timer().startGpuTimer();
+			//if (usetimer) { timer().startGpuTimer(); }
+			timer().startGpuTimer();
 			for (int offset = 1; offset < pow2roundedsize; offset <<= 1) {
-				//gridDims.x can probably = pow2roundedsize >> ilog2(offset);
-				kernScanUp<<<gridDims, blockDims>>>(pow2roundedsize, offset << 1, offset, dev_data);
+				gridDim = ((pow2roundedsize >> ilog2(offset)) + blockSize - 1) / blockSize;
+				kernScanUp<<<gridDim, blockSize>>>(pow2roundedsize, offset << 1, offset, dev_data);
 			}
 
 			//make sure last index value is 0 before we downsweep
@@ -67,10 +69,51 @@ namespace StreamCompaction {
 			checkCUDAError("cudaMemcpy from zero to dev_data failed!");
 
 			for (int offset = pow2roundedsize >> 1; offset > 0; offset >>= 1) {
-				//gridDims can probably = pow2roundedsize >> ilog2(offset);
-				kernScanDown<<<gridDims, blockDims>>>(pow2roundedsize, offset << 1, offset, dev_data);
+				gridDim = ((pow2roundedsize >> ilog2(offset)) + blockSize - 1) / blockSize;
+				kernScanDown<<<gridDim, blockSize>>>(pow2roundedsize, offset << 1, offset, dev_data);
 			}
-            timer().endGpuTimer();
+			timer().endGpuTimer();
+
+			cudaMemcpy(odata, dev_data, numbytes_copy, cudaMemcpyDeviceToHost);
+			checkCUDAError("cudaMemcpy from dev_data to odata failed!");
+
+			cudaFree(dev_data);
+			checkCUDAError("cudaFree(dev_data) failed!");
+        }
+
+
+        void scan_notimer(const int n, int *odata, const int *idata) {
+			int* dev_data;
+			const int pow2roundedsize = 1 << ilog2ceil(n);
+			const int numbytes_pow2roundedsize = pow2roundedsize * sizeof(int);
+			const int numbytes_copy = n * sizeof(int);
+
+			cudaMalloc((void**)&dev_data, numbytes_pow2roundedsize);
+			checkCUDAError("cudaMalloc dev_data failed!");
+
+			cudaMemcpy(dev_data, idata, numbytes_copy, cudaMemcpyHostToDevice);
+			checkCUDAError("cudaMemcpy from idata to dev_data failed!");
+
+			int gridDim = (pow2roundedsize + blockSize - 1) / blockSize;
+
+			//the algo works on pow2 sized arrays so we size up the array to the next pow 2 if it wasn't a pow of 2 to begin with
+			//then we need to fill data after index n-1 with zeros 
+			kernZeroExcessLeaves<<<gridDim, blockSize>>>(pow2roundedsize, n, dev_data);
+
+			for (int offset = 1; offset < pow2roundedsize; offset <<= 1) {
+				gridDim = ((pow2roundedsize >> ilog2(offset)) + blockSize - 1) / blockSize;
+				kernScanUp<<<gridDim, blockSize>>>(pow2roundedsize, offset << 1, offset, dev_data);
+			}
+
+			//make sure last index value is 0 before we downsweep
+			const int zero = 0;
+			cudaMemcpy(dev_data + pow2roundedsize - 1, &zero, sizeof(int), cudaMemcpyHostToDevice);
+			checkCUDAError("cudaMemcpy from zero to dev_data failed!");
+
+			for (int offset = pow2roundedsize >> 1; offset > 0; offset >>= 1) {
+				gridDim = ((pow2roundedsize >> ilog2(offset)) + blockSize - 1) / blockSize;
+				kernScanDown<<<gridDim, blockSize>>>(pow2roundedsize, offset << 1, offset, dev_data);
+			}
 
 			cudaMemcpy(odata, dev_data, numbytes_copy, cudaMemcpyDeviceToHost);
 			checkCUDAError("cudaMemcpy from dev_data to odata failed!");
@@ -89,13 +132,14 @@ namespace StreamCompaction {
          * @returns      The number of elements remaining after compaction.
          */
         int compact(const int n, int *odata, const int *idata) {
+			const int numbytes_copy = n * sizeof(int);
+			int* bools = new int[n];
+			int* indices = new int[n];
 			int* dev_idata;
 			int* dev_odata;
 			int* dev_bools;
-			int* bools = new int[n];
-			int* indices = new int[n];
+			int* dev_indices;
 
-			const int numbytes_copy = n * sizeof(int);
 
 			cudaMalloc((void**)&dev_idata, numbytes_copy);
 			checkCUDAError("cudaMalloc dev_idata failed!");
@@ -104,27 +148,32 @@ namespace StreamCompaction {
 			checkCUDAError("cudaMalloc dev_odata failed!");
 
 			cudaMalloc((void**)&dev_bools, numbytes_copy);
-			checkCUDAError("cudaMalloc bools failed!");
+			checkCUDAError("cudaMalloc dev_bools failed!");
+
+			cudaMalloc((void**)&dev_indices, numbytes_copy);
+			checkCUDAError("cudaMalloc dev_indices failed!");
 
 			cudaMemcpy(dev_idata, idata, numbytes_copy, cudaMemcpyHostToDevice);
 			checkCUDAError("cudaMemcpy idata to dev_idata failed!");
 
-			const dim3 gridDims( (n + blockSize - 1) / blockSize, 0, 0 );
-			const dim3 blockDims(blockSize, 0, 0);
+			const int gridDim = (n + blockSize - 1) / blockSize;
 
             timer().startGpuTimer();
 
-			StreamCompaction::Common::kernMapToBoolean<<<gridDims, blockDims>>>(n, bools, dev_idata);
-
+			StreamCompaction::Common::kernMapToBoolean<<<gridDim, blockSize>>>(n, dev_bools, dev_idata);
 			cudaMemcpy(bools, dev_bools, numbytes_copy, cudaMemcpyDeviceToHost);
 			checkCUDAError("cudaMemcpy dev_bools to bools failed!");
 
-			StreamCompaction::Efficient::scan(n, indices, bools);
-			StreamCompaction::Common::kernScatter<<<gridDims,blockDims>>>(n, dev_odata, idata, bools, indices);
+			StreamCompaction::Efficient::scan_notimer(n, indices, bools);
+			cudaMemcpy(dev_indices, indices, numbytes_copy, cudaMemcpyHostToDevice);
+			checkCUDAError("cudaMemcpy indices to dev_indices failed!");
+
+			StreamCompaction::Common::kernScatter<<<gridDim, blockSize>>>(n, dev_odata, dev_idata, dev_bools, dev_indices);
 
             timer().endGpuTimer();
 			
 			cudaMemcpy(odata, dev_odata, numbytes_copy, cudaMemcpyDeviceToHost);
+			checkCUDAError("cudaMemcpy dev_odata to odata failed!");
 			const int size = indices[n - 1] + bools[n - 1]; 
 
 			delete[] bools;

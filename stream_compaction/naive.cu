@@ -49,24 +49,21 @@ namespace StreamCompaction {
 			cudaMemcpy(dev_idata, idata, numbytes, cudaMemcpyHostToDevice);
 			checkCUDAError("cudaMemcpy from idata to dev_idata failed!");
 
-			cudaMemcpy(dev_odata, idata, numbytes, cudaMemcpyHostToDevice);
-			checkCUDAError("cudaMemcpy from idata to dev_odata failed!");
-
-			const dim3 gridDims((n + blockSize - 1) / blockSize, 0, 0);
-			const dim3 blockDims(blockSize, 0, 0);
+			const int gridDim = (n + blockSize - 1) / blockSize;
+			const int blockDim = blockSize;
 
             timer().startGpuTimer();
 			for (int offset = 1; offset < n; offset <<= 1) {
 				//gridDims.x can probably = (n + blockSize - 1 - offset) / blockSize;
-				kernScanByLevel<<<gridDims, blockDims>>>(n, offset, dev_odata, dev_idata);
+				kernScanByLevel<<<gridDim, blockDim>>>(n, offset, dev_odata, dev_idata);
 				std::swap(dev_odata, dev_idata);
 			}
-            timer().endGpuTimer();
 
 			//result is inclusive scan (includes the final reduction sum) 
 			//shift left and odata[0] = 0 to get exclusive scan (identity at index 0 and remove final reduction sum)
-			kernConvertToExclusiveScan<<<gridDims, blockDims>>>(n, dev_odata, dev_idata);
+			kernConvertToExclusiveScan<<<gridDim, blockDim>>>(n, dev_odata, dev_idata);
 
+            timer().endGpuTimer();
 			cudaMemcpy(odata, dev_odata, numbytes, cudaMemcpyDeviceToHost);
 			checkCUDAError("cudaMemcpy from dev_odata to odata failed!");
 			

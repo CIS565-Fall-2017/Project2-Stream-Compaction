@@ -13,7 +13,8 @@
 #include <stream_compaction/thrust.h>
 #include "testing_helpers.hpp"
 
-const int SIZE = 1 << 8; // feel free to change the size of array
+//todo: 8, 16, 20, 24
+const int SIZE = 1 << 24; // feel free to change the size of array
 const int NPOT = SIZE - 3; // Non-Power-Of-Two
 int a[SIZE], b[SIZE], c[SIZE];
 
@@ -49,15 +50,15 @@ int main(int argc, char* argv[]) {
     printDesc("naive scan, power-of-two");
     StreamCompaction::Naive::scan(SIZE, c, a);
     printElapsedTime(StreamCompaction::Naive::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
-    //printArray(SIZE, c, true);
-    //printCmpResult(SIZE, b, c);
+    printArray(SIZE, c, true);
+    printCmpResult(SIZE, b, c);
 
-    //zeroArray(SIZE, c);
-    //printDesc("naive scan, non-power-of-two");
-    //StreamCompaction::Naive::scan(NPOT, c, a);
-    //printElapsedTime(StreamCompaction::Naive::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
-    //printArray(SIZE, c, true);
-    //printCmpResult(NPOT, b, c);
+    zeroArray(SIZE, c);
+    printDesc("naive scan, non-power-of-two");
+    StreamCompaction::Naive::scan(NPOT, c, a);
+    printElapsedTime(StreamCompaction::Naive::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
+    printArray(SIZE, c, true);
+    printCmpResult(NPOT, b, c);
 
     zeroArray(SIZE, c);
     printDesc("work-efficient scan, power-of-two");

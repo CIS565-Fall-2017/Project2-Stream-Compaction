@@ -24,6 +24,7 @@ namespace StreamCompaction {
             timer().startGpuTimer();
 			thrust::exclusive_scan(dv_in.begin(), dv_in.end(), dv_out.begin());
             timer().endGpuTimer();
+			thrust::copy(dv_out.begin(), dv_out.end(), odata);
         }
     }
 }
