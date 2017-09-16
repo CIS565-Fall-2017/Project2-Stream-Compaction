@@ -21,7 +21,7 @@ int a[SIZE], b[SIZE], c[SIZE];
 int main(int argc, char* argv[]) {
     // Scan tests
 
-    printf("\n");
+    printf("SIZE: %i\n", SIZE);
     printf("****************\n");
     printf("** SCAN TESTS **\n");
     printf("****************\n");

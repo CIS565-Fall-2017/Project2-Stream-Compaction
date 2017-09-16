@@ -9,6 +9,10 @@ set(SOURCE_FILES
     "efficient.cu"
     "thrust.h"
     "thrust.cu"
+	"radix.h"
+	"radix.cu"
+	"sharedandbank.h"
+	"sharedandbank.cu"
     )
 
 cuda_add_library(stream_compaction
