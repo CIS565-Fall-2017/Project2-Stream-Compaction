@@ -11,20 +11,26 @@ namespace StreamCompaction {
 	        static PerformanceTimer timer;
 	        return timer;
         }
+		
+		void scanImplementation(int n, int *odata, const int *idata)
+		{
+			odata[0] = 0;
+			for (int i = 1; i < n; i++)
+			{
+				odata[i] = idata[i - 1] + odata[i - 1];
+			}
+		}
 
         /**
          * CPU scan (prefix sum).
          * For performance analysis, this is supposed to be a simple for loop.
          * (Optional) For better understanding before starting moving to GPU, you can simulate your GPU scan in this function first.
          */
-        void scan(int n, int *odata, const int *idata) {
-	        //timer().startCpuTimer();
-			odata[0] = 0;
-			for (int i = 1; i < n; i++)
-			{
-				odata[i] = idata[i-1] + odata[i-1];
-			}
-	        //timer().endCpuTimer();
+        void scan(int n, int *odata, const int *idata) 
+		{
+	        timer().startCpuTimer();
+			scanImplementation(n, odata, idata);
+	        timer().endCpuTimer();
         }
 
         /**
@@ -32,7 +38,8 @@ namespace StreamCompaction {
          *
          * @returns the number of elements remaining after compaction.
          */
-        int compactWithoutScan(int n, int *odata, const int *idata) {
+        int compactWithoutScan(int n, int *odata, const int *idata) 
+		{
 	        timer().startCpuTimer();
 			int count = 0;
 			for (int i = 0; i < n; i++)
@@ -51,36 +58,37 @@ namespace StreamCompaction {
          *
          * @returns the number of elements remaining after compaction.
          */
-        int compactWithScan(int n, int *odata, const int *idata) {
+        int compactWithScan(int n, int *odata, const int *idata) 
+		{
 	        timer().startCpuTimer();
 
-			int* temp = new int[n]; //(int *)malloc(sizeof(int) * n); //
+				int* temp = new int[n];
 
-			for (int i = 0; i < n; i++)
-			{
-				if (idata[i] != 0)
+				for (int i = 0; i < n; i++)
 				{
-					temp[i] = 1;
+					if (idata[i] != 0)
+					{
+						temp[i] = 1;
+					}
+					else 
+					{
+						temp[i] = 0;
+					}
 				}
-				else 
-				{
-					temp[i] = 0;
-				}
-			}
 
-			int* scanResults = new int[n]; //(int *)malloc(sizeof(int) * n); //
-			scan(n, scanResults, temp);
+				int* scanResults = new int[n];
+				scanImplementation(n, scanResults, temp);
 
-			//scatter
-			int count = 0;
-			for (int i = 0; i < n; i++)
-			{
-				if (temp[i] == 1)
+				//scatter
+				int count = 0;
+				for (int i = 0; i < n; i++)
 				{
-					odata[scanResults[i]] = idata[i];
-					count = scanResults[i];
+					if (temp[i] == 1)
+					{
+						odata[scanResults[i]] = idata[i];
+						count = scanResults[i];
+					}
 				}
-			}
 
 	        timer().endCpuTimer();
             return count+1;
