@@ -102,6 +102,55 @@ namespace StreamCompaction {
 			cudaFree(out);
         }
 
+		void exclusiveScan(int n, int *odata, const int *idata) {
+			dim3 fullBlocksPerGrid((n + blocksize - 1) / blocksize);
+
+			// Get the next power of 2
+			int currPow = ilog2ceil(n) - 1;
+			int nextPow = 2 << currPow;
+
+			int *temp = new int[nextPow];
+			for (int i = 0; i < nextPow; i++) {
+				if (i < n) {
+					temp[i] = idata[i];
+				}
+				// Fill the rest of the array with 0 if not a power of 2.
+				else {
+					temp[i] = 0;
+				}
+			}
+
+			int *out;
+			cudaMalloc((void**)&out, nextPow * sizeof(int));
+			checkCUDAError("cudaMalloc out failed!");
+			cudaMemcpy(out, temp, sizeof(int) * nextPow, cudaMemcpyHostToDevice);
+
+			// Up-Sweep
+			for (int d = 0; d <= ilog2ceil(nextPow) - 1; d++) {
+				int pow2dPlus1 = pow(2, d + 1);
+				int pow2d = pow(2, d);
+
+				// If we hit the end of the depth then we should be writing to the very last spot in the array.
+				bool reachedRoot = (d == ilog2ceil(nextPow) - 1);
+				upSweep << < fullBlocksPerGrid, blocksize >> > (nextPow, pow2dPlus1, pow2d, out, reachedRoot);
+			}
+
+			// Down-Sweep
+			for (int d = ilog2ceil(nextPow) - 1; d >= 0; d--) {
+				int pow2dPlus1 = pow(2, d + 1);
+				int pow2d = pow(2, d);
+
+				downSweep << < fullBlocksPerGrid, blocksize >> > (nextPow, pow2dPlus1, pow2d, out);
+			}
+
+			// Copy final values into odata
+			cudaMemcpy(odata, out, sizeof(int) * nextPow, cudaMemcpyDeviceToHost);
+
+			delete[]temp;
+			cudaFree(out);
+		}
+
+
         /**
          * Performs stream compaction on idata, storing the result into odata.
          * All zeroes are discarded.
@@ -118,40 +167,45 @@ namespace StreamCompaction {
 			cudaMalloc((void**)&dev_in, sizeof(int) * n);
 			cudaMemcpy(dev_in, idata, sizeof(int) * n, cudaMemcpyHostToDevice);
 
-			int *temp;
-			cudaMalloc((void**)&temp, sizeof(int) * n);
+			int *dev_out;
+			cudaMalloc((void**)&dev_out, sizeof(int) * n);
+
+			int *dev_indices;
+			cudaMalloc((void**)&dev_indices, sizeof(int) * n);
+
+			int *bools = new int[n];
+			int *dev_bools;
+			cudaMalloc((void**)&dev_bools, sizeof(int) * n);
 
 			timer().startGpuTimer();
 			// TODO
 
-			int *dev_bools;
-			cudaMalloc((void**)&dev_bools, sizeof(int) * n);
-			//int *bools = new int[n];
 			StreamCompaction::Common::kernMapToBoolean << < fullBlocksPerGrid, blocksize >> > (n, dev_bools, dev_in);
-			//cudaMemcpy(bools, dev_bools, sizeof(int) * n, cudaMemcpyDeviceToHost);
+			cudaMemcpy(bools, dev_bools, sizeof(int) * n, cudaMemcpyDeviceToHost);
 
-			/*cudaMemcpy(odata, dev_bools, sizeof(int) * n, cudaMemcpyDeviceToHost);
-			exclusiveScan(n, temp, odata);
+			exclusiveScan(n, dev_indices, bools);
 
+			int numElements = 0;
 			for (int i = 0; i < n; i++) {
-				printf("INDICES: %i\n", temp[i]);
-			}*/
+				if (bools[i] == 1) {
+					numElements++;
+				}
+			}
 
-			/*int *indices;
-			cudaMalloc((void**)&indices, sizeof(int) * n);
-			cudaMemcpy()*/
-
-
-
-
-
-
-
-			/*StreamCompaction::Common::kernScatter << < fullBlocksPerGrid, blocksize >> > (n, dev_out, dev_in, dev_bools, dev_indices);
-			cudaMemcpy(odata, dev_out, sizeof(int) * n, cudaMemcpyDeviceToHost);*/
+			StreamCompaction::Common::kernScatter << < fullBlocksPerGrid, blocksize >> > (n, dev_out, dev_in, dev_bools, dev_indices);
 
 			timer().endGpuTimer();
-			return -1;
+
+			cudaMemcpy(odata, dev_out, sizeof(int) * n, cudaMemcpyDeviceToHost);
+
+			cudaFree(dev_in);
+			cudaFree(dev_out);
+			cudaFree(dev_indices);
+			cudaFree(dev_bools);
+
+			delete[]bools;
+
+			return numElements;
 		}
     }
 }
