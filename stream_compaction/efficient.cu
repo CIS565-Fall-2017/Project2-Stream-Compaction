@@ -47,39 +47,50 @@ namespace StreamCompaction {
         void scan(int n, int *odata, const int *idata) {
 			dim3 fullBlocksPerGrid((n + blocksize - 1) / blocksize);
 			
-			int *out;
-			cudaMalloc((void**)&out, n * sizeof(int));
-			cudaMemcpy(out, idata, sizeof(int) * n, cudaMemcpyHostToDevice);
-
-			timer().startGpuTimer();
-            // TODO
-
 			// Get the next power of 2
 			int currPow = ilog2ceil(n) - 1;
 			int nextPow = 2 << currPow;
 
+			int *temp;
+			for (int i = 0; i < nextPow; i++) {
+				if (i < n) {
+					temp[i] = idata[i];
+				}
+				// Fill the rest of the array with 0 if not a power of 2.
+				else {
+					temp[i] = 0;
+				}
+			}
+
+			int *out;
+			cudaMalloc((void**)&out, nextPow * sizeof(int));
+			cudaMemcpy(out, temp, sizeof(int) * nextPow, cudaMemcpyHostToDevice);
+
+			timer().startGpuTimer();
+            // TODO
+
 			// Up-Sweep
-			for (int d = 0; d <= ilog2ceil(n) - 1; d++) {
+			for (int d = 0; d <= ilog2ceil(nextPow) - 1; d++) {
 				int pow2dPlus1 = pow(2, d + 1);
 				int pow2d = pow(2, d);
 
-				upSweep << < fullBlocksPerGrid, blocksize >> > (n, pow2dPlus1, pow2d, out);
+				upSweep << < fullBlocksPerGrid, blocksize >> > (nextPow, pow2dPlus1, pow2d, out);
 			}
 
 			// Gotta find a better solution to this. lol
-			cudaMemcpy(odata, out, sizeof(int) * n, cudaMemcpyDeviceToHost);
-			odata[n - 1] = 0;
-			cudaMemcpy(out, odata, sizeof(int) * n, cudaMemcpyHostToDevice);
+			cudaMemcpy(odata, out, sizeof(int) * nextPow, cudaMemcpyDeviceToHost);
+			odata[nextPow - 1] = 0;
+			cudaMemcpy(out, odata, sizeof(int) * nextPow, cudaMemcpyHostToDevice);
 
 			// Down-Sweep
-			for (int d = ilog2ceil(n) - 1; d >= 0; d--) {
+			for (int d = ilog2ceil(nextPow) - 1; d >= 0; d--) {
 				int pow2dPlus1 = pow(2, d + 1);
 				int pow2d = pow(2, d);
 			
-				downSweep << < fullBlocksPerGrid, blocksize >> > (n, pow2dPlus1, pow2d, out);
+				downSweep << < fullBlocksPerGrid, blocksize >> > (nextPow, pow2dPlus1, pow2d, out);
 			}
 
-			cudaMemcpy(odata, out, sizeof(int) * n, cudaMemcpyDeviceToHost);
+			cudaMemcpy(odata, out, sizeof(int) * nextPow, cudaMemcpyDeviceToHost);
 
 			cudaFree(out);
 
