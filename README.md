@@ -4,6 +4,12 @@ Project 2 - Stream Compaction**
 * Josh Lawrence
 * Tested on: Windows 10, i7-6700HQ @ 2.6GHz 8GB, GTX 960M 2GB  Personal
 
+** CMakeLists.txt Additions**
+radix.h
+radix.cu
+sharedandbank.h
+sharedandbank.cu
+
 ![](img/ThrustCudaLaunches.png)
 ![](img/ThrustTimeline.png)
 ![](img/EfficientTimeline.png)
