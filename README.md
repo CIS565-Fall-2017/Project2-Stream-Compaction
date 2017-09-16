@@ -46,17 +46,17 @@ Finally, in order to have a parallel benchmark to compare to, we also use Thrust
 
 While gathering data for this, I noticed that the resulting running times fluctuated quite a bit from execution to execution. Because of this, I took three trials for each algorithm and compared the averages to each other. For each of these tests, the kernels were run with a block size of 128 threads with a varying number of elements within the arrays.
 
-![](cpu-trials.jpg)
+![](img/cpu-trials.jpg)
 
-![](naive-trials.jpg)
+![](img/naive-trials.jpg)
 
-![](work-efficient-trials.jpg)
+![](img/work-efficient-trials.jpg)
 
-![](thurst-trials.jpg)
+![](img/thurst-trials.jpg)
 
-![](averages.jpg)
+![](img/averages.jpg)
 
-![](averages-graph.jpg)
+![](img/averages-graph.jpg)
 
 The first thing you might think while looking at the graph above is, "Wait, I thought you tried four algorithms! Why do I only see three lines?". That is because the CPU implementation (blue line) is so much faster than the parallel implementations that it is practically at zero at this scale.
 
