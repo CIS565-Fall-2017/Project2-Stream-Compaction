@@ -4,18 +4,19 @@ Project 2 - Stream Compaction**
 * Josh Lawrence
 * Tested on: Windows 10, i7-6700HQ @ 2.6GHz 8GB, GTX 960M 2GB  Personal
 
-**CMakeLists.txt Additions**
+**CMakeLists.txt Additions**<br />
 radix.h<br />
 radix.cu<br />
 sharedandbank.h<br />
 sharedandbank.cu<br />
 
+**NSight**<br />
 ![](img/ThrustCudaLaunches.png)
 ![](img/ThrustTimeline.png)
 ![](img/EfficientTimeline.png)
 
 
-**GPU Device Properties**
+**GPU Device Properties**<br />
 https://devblogs.nvidia.com/parallelforall/5-things-you-should-know-about-new-maxwell-gpu-architecture/<br />
 cuda cores 640<br />
 mem bandwidth 86.4 GB/s<br />
@@ -40,7 +41,7 @@ concurrent copy and execution yes<br />
 major.minor 5.0<br />
 
 
-**Debug Print**
+**Debug Print**<br />
 ///SIZE: 16777216<br />
 ///****************<br />
 ///** SCAN TESTS **<br />

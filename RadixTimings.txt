@@ -1,0 +1,76 @@
+24
+SIZE: 16777216
+==== std::sort, power-of-two(full array) ====
+   elapsed time: 1285.52ms    (std::chrono Measured)
+==== std::sort, non-power-of-two ====
+   elapsed time: 1351.37ms    (std::chrono Measured)
+==== CPU radix sort, power-of-two ====
+   elapsed time: 2344.08ms    (std::chrono Measured)
+    passed
+==== CPU radix sort, non power-of-two ====
+   elapsed time: 2191.62ms    (std::chrono Measured)
+    passed
+==== GPU radix sort, power-of-two ====
+   elapsed time: 396.58ms    (CUDA Measured)
+    passed
+==== GPU radix sort, non power-of-two ====
+   elapsed time: 387.447ms    (CUDA Measured)
+    passed
+
+
+20
+SIZE: 1048576
+==== std::sort, power-of-two(full array) ====
+   elapsed time: 87.5054ms    (std::chrono Measured)
+==== std::sort, non-power-of-two ====
+   elapsed time: 82.9029ms    (std::chrono Measured)
+==== CPU radix sort, power-of-two ====
+   elapsed time: 172.452ms    (std::chrono Measured)
+    passed
+==== CPU radix sort, non power-of-two ====
+   elapsed time: 171.817ms    (std::chrono Measured)
+    passed
+==== GPU radix sort, power-of-two ====
+   elapsed time: 30.9819ms    (CUDA Measured)
+    passed
+==== GPU radix sort, non power-of-two ====
+   elapsed time: 31.0802ms    (CUDA Measured)
+    passed
+
+16
+SIZE: 65536
+==== std::sort, power-of-two(full array) ====
+   elapsed time: 5.43605ms    (std::chrono Measured)
+==== std::sort, non-power-of-two ====
+   elapsed time: 5.54706ms    (std::chrono Measured)
+==== CPU radix sort, power-of-two ====
+   elapsed time: 11.9554ms    (std::chrono Measured)
+    passed
+==== CPU radix sort, non power-of-two ====
+   elapsed time: 12.4251ms    (std::chrono Measured)
+    passed
+==== GPU radix sort, power-of-two ====
+   elapsed time: 7.53981ms    (CUDA Measured)
+    passed
+==== GPU radix sort, non power-of-two ====
+   elapsed time: 6.8296ms    (CUDA Measured)
+    passed
+
+8
+SIZE: 256
+==== std::sort, power-of-two(full array) ====
+   elapsed time: 0.038321ms    (std::chrono Measured)
+==== std::sort, non-power-of-two ====
+   elapsed time: 0.029629ms    (std::chrono Measured)
+==== CPU radix sort, power-of-two ====
+   elapsed time: 0.044642ms    (std::chrono Measured)
+    passed
+==== CPU radix sort, non power-of-two ====
+   elapsed time: 0.043062ms    (std::chrono Measured)
+    passed
+==== GPU radix sort, power-of-two ====
+   elapsed time: 5.23971ms    (CUDA Measured)
+    passed
+==== GPU radix sort, non power-of-two ====
+   elapsed time: 5.70042ms    (CUDA Measured)
+    passed

@@ -24,6 +24,45 @@ namespace StreamCompaction {
 				odata[i] = odata[i - 1] + idata[i - 1];
 			}
 		}
+
+		/*
+		   CPU Radix Sort
+		*/
+		void radixSort(const int n, const int numbits, int* odata) {
+			if (n <= 1) return;
+			int* e = new int[n];
+			int* f = new int[n];
+			int* t = new int[n];
+			int* d = new int[n];
+			int* ibuf = new int[n];
+			for (int i = 0; i < n; ++i) { ibuf[i] = odata[i]; }
+
+	        timer().startCpuTimer();
+			for (int mask = 1; mask <= (1 << numbits); mask <<= 1) {
+				//gen e
+				for (int i = 0; i < n; ++i) { e[i] = (ibuf[i] & mask) == mask ? 0 : 1; }
+
+				//gen f
+				scan_implementation(n, f, e);
+
+				//gen t
+				const int totalFalses = e[n - 1] + f[n - 1];
+				for (int i = 0; i < n; ++i) { t[i] = i - f[i] + totalFalses; }
+
+				//gen d
+				for (int i = 0; i < n; ++i) { d[i] = e[i] == 0 ? t[i] : f[i]; }
+
+				//gen output of this iteration
+				for (int i = 0; i < n; ++i) { odata[d[i]] = ibuf[i]; }
+
+				std::swap(odata, ibuf);
+			}
+			std::swap(odata, ibuf);
+
+	        timer().endCpuTimer();
+		}
+
+
         void scan(const int n, int *odata, const int *idata) {
 	        timer().startCpuTimer();
 			scan_implementation(n, odata, idata);

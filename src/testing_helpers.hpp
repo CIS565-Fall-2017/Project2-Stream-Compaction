@@ -43,6 +43,12 @@ void zeroArray(int n, int *a) {
     }
 }
 
+void copyArray(int n, int* OUTa, int* INb) {
+    for (int i = 0; i < n; i++) {
+        OUTa[i] = INb[i];
+    }
+}
+
 void genArray(int n, int *a, int maxval) {
     srand(time(nullptr));
 

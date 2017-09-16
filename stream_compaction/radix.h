@@ -6,6 +6,6 @@ namespace StreamCompaction {
     namespace Radix {
         StreamCompaction::Common::PerformanceTimer& timer();
 
-        void sort(const int n, int *odata, const int *idata);
+        void radixSort(const int n, const int numbits, int *odata);
     }
 }
