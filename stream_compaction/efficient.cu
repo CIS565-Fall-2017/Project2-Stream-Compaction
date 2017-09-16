@@ -167,19 +167,6 @@ namespace StreamCompaction {
 			int currPow = ilog2ceil(n) - 1;
 			int nextPow = 2 << currPow;
 
-			int diff = nextPow - n;
-
-			//int *temp = new int[nextPow];
-			//for (int i = 0; i < nextPow; i++) {
-			//	if (i < n) {
-			//		temp[i] = idata[i];
-			//	}
-			//	// Fill the rest of the array with 0 if not a power of 2.
-			//	else {
-			//		temp[i] = 0;
-			//	}
-			//}
-
 			int *dev_in;
 			cudaMalloc((void**)&dev_in, sizeof(int) * nextPow);
 			cudaMemcpy(dev_in, idata, sizeof(int) * nextPow, cudaMemcpyHostToDevice);
