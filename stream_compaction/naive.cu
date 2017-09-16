@@ -48,7 +48,6 @@ void scan(int n, int *odata, const int *idata) {
   cudaMalloc((void**)&dev_array_B, n * sizeof(int));
   cudaMemcpy(dev_array_B, idata, sizeof(int) * n, cudaMemcpyHostToDevice);
   bool direction = false;
-  int *temp = (int*)malloc(sizeof(int) * n);
 
   timer().startGpuTimer();
   shift_impl<<<fullBlocksPerGrid, BLOCK_SIZE>>>(n, dev_array_A, dev_array_B);
@@ -64,6 +63,8 @@ void scan(int n, int *odata, const int *idata) {
   }
   timer().endGpuTimer();
   cudaMemcpy(odata, (!direction ? dev_array_A : dev_array_B), sizeof(int) * n, cudaMemcpyDeviceToHost);
+  cudaFree(dev_array_A);
+  cudaFree(dev_array_B);
 }
 
 } // namespace Naive
