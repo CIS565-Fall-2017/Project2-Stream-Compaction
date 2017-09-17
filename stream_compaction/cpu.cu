@@ -57,9 +57,15 @@ namespace StreamCompaction {
 
 				std::swap(odata, ibuf);
 			}
+	        timer().endCpuTimer();
+
 			std::swap(odata, ibuf);
 
-	        timer().endCpuTimer();
+			delete[] e;
+			delete[] f;
+			delete[] t;
+			delete[] d;
+			delete[] ibuf;
 		}
 
 
