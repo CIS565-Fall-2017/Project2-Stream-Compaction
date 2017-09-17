@@ -76,12 +76,14 @@ namespace StreamCompaction {
             if (odata[i] == 1)
             {
               odata[scanResult[i]] = idata[i];
+              j++;
             }
           }
 
           if (odata[n - 1] == 1)
           {
             odata[scanResult[n - 1] + 1] = idata[n - 1];
+            j++;
           }
 
 	        timer().endCpuTimer();
