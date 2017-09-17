@@ -11,6 +11,10 @@ sharedandbank.h<br />
 sharedandbank.cu<br />
 
 **NSight**<br />
+![](img/data.png)
+![](img/graph_inclusivescan.png)
+![](img/graph_compact.png)
+![](img/graph_radix.png)
 ![](img/ThrustCudaLaunches.png)
 ![](img/ThrustTimeline.png)
 ![](img/EfficientTimeline.png)
