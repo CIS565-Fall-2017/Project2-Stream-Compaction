@@ -26,7 +26,7 @@ CUDA Stream Compaction
 
 For readability, below graph only shows power of two version of each implementation methods except Thrust.
 
-![](images/01.png)
+![](img/01.png)
 
 | # of Elements  				| 2^8	   | 2^9	  | 2^10	 | 2^11		| 2^12	   | 2^13     | 2^14     | 2^15     | 2^16     | 2^17     | 2^18     | 2^19     | 2^20     | 2^21     | 2^22     |
 | ------------- 				| :------- | :------: | :------: | :------: | :------: | :------: | :------: | :------: | :------: | :------: | :------: | :------: | :------: | :------: | -------: |
@@ -54,7 +54,7 @@ And, another one was, power of two version of Thrust implementation's performanc
 
 ## Stream Compaction performance (ms) depending on the array size
 
-![](images/02.png)
+![](img/02.png)
 
 | # of Elements  								| 2^8	   | 2^9	  | 2^10	 |
 | ------------- 								| :------- | :------: | -------: |
@@ -72,7 +72,7 @@ But, the performance of Efficient Compaction increases much more slightly than C
 
 ## Radix Sort performance (ms) depending on the array size
 
-![](images/03.png)
+![](img/03.png)
 
 | # of Elements  | 2^5	    | 2^6	   | 2^7	  | 2^8	     | 2^9	    | 2^10     |
 | -------------  | :------- | :------: | :------: | :------: | :------: | -------: |
