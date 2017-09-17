@@ -88,7 +88,7 @@ namespace StreamCompaction {
 				//gen e	//for (int i = 0; i < n; ++i) { e[i] = (ibuf[i] & mask) == mask ? 0 : 1; }
 				kernGenE << <gridDim, blockSize >> > (n, mask, dev_e, dev_ibuf);
 
-				{//generate f
+				{//generate f (scan)
 					cudaMemcpy(dev_f, dev_e, numbytes_copy, cudaMemcpyDeviceToDevice);
 					checkCUDAError("cudaMemcpy from to dev_e dev_f failed!");
 
@@ -99,7 +99,7 @@ namespace StreamCompaction {
 					StreamCompaction::Efficient::kernZeroExcessLeaves<<<gridDim, blockSize>>>(pow2roundedsize, n, dev_f);
 
 					for (int offset = 1; offset < pow2roundedsize; offset <<= 1) {
-						gridDim = ((pow2roundedsize >> ilog2(offset)) + blockSize - 1) / blockSize;
+						gridDim = ((pow2roundedsize >> ilog2(offset<<1)) + blockSize - 1) / blockSize;
 						StreamCompaction::Efficient::kernScanUp<<<gridDim, blockSize>>>(pow2roundedsize, offset << 1, offset, dev_f);
 					}
 
@@ -109,10 +109,10 @@ namespace StreamCompaction {
 					checkCUDAError("cudaMemcpy from zero to dev_data failed!");
 
 					for (int offset = pow2roundedsize >> 1; offset > 0; offset >>= 1) {
-						gridDim = ((pow2roundedsize >> ilog2(offset)) + blockSize - 1) / blockSize;
+						gridDim = ((pow2roundedsize >> ilog2(offset<<1)) + blockSize - 1) / blockSize;
 						StreamCompaction::Efficient::kernScanDown<<<gridDim, blockSize>>>(pow2roundedsize, offset << 1, offset, dev_f);
 					}
-				}
+				}//end generate f (scan)
 
 				//find totalFalses
 				int eEND, fEND;

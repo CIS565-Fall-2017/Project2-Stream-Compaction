@@ -11,10 +11,10 @@ SIZE: 16777216
    elapsed time: 2191.62ms    (std::chrono Measured)
     passed
 ==== GPU radix sort, power-of-two ====
-   elapsed time: 396.58ms    (CUDA Measured)
+   elapsed time: 377.58ms    (CUDA Measured)
     passed
 ==== GPU radix sort, non power-of-two ====
-   elapsed time: 387.447ms    (CUDA Measured)
+   elapsed time: 369.447ms    (CUDA Measured)
     passed
 
 
