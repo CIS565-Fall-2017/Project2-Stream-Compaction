@@ -12,13 +12,6 @@ namespace StreamCompaction {
             return timer;
         }
 
-        __global__ void kernScan(int n, const int pow, int *odata, const int *idata) {
-          int index = blockIdx.x * blockDim.x + threadIdx.x;
-          if (index >= n) return;
-
-          odata[index] = (index >= pow) ? idata[index - pow] + idata[index] : idata[index];
-        }
-
         // Kernel to pad the new array with 0s
         __global__ void kernPadWithZeros(const int n, const int nPad, int *dev_data) {
           int index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -30,17 +23,21 @@ namespace StreamCompaction {
         // Up-Sweep Kernel
         __global__ void kernUpSweep(const int n, const int pow, const int pow1, int *dev_data) {
           int index = blockIdx.x * blockDim.x + threadIdx.x;
-          if (index % pow1 != pow1 - 1) return;
-          dev_data[index] += dev_data[index - pow];
+          if (index * pow1 >= n) return;
+
+          int idx = (index + 1) * pow1 - 1;
+          dev_data[idx] += dev_data[idx - pow];
         }
 
         // Down-Sweep Kernel
         __global__ void kernDownSweep(const int n, const int pow, const int pow1, int *dev_data) {
           int index = blockIdx.x * blockDim.x + threadIdx.x;
-          if (index % pow1 != pow1 - 1) return;
-          int t = dev_data[index - pow];
-          dev_data[index - pow] = dev_data[index];
-          dev_data[index] += t;
+          if (index * pow1 >= n) return;
+
+          int idx = (index + 1) * pow1 - 1;
+          int t = dev_data[idx - pow];
+          dev_data[idx - pow] = dev_data[idx];
+          dev_data[idx] += t;
         }
 
         void scan_implementation(const int nl, const dim3 numBlocks, const dim3 numThreads,
@@ -49,18 +46,21 @@ namespace StreamCompaction {
           for (int d = 0; d < nl; d++) {
             int pow = 1 << (d);
             int pow1 = 1 << (d + 1);
-            kernUpSweep << <numBlocks, numThreads >> > (nPad, pow, pow1, dev_data);
+            dim3 nB((nPad / pow1 + blockSize - 1) / blockSize);
+            kernUpSweep <<<nB, numThreads>>> (nPad, pow, pow1, dev_data);
             checkCUDAError("kernUpSweep failed!");
           }
 
           //dev_data[nPad - 1] = 0; // set last element to 0 before downsweep.. 
           int zero = 0;
           cudaMemcpy(dev_data + nPad - 1, &zero, sizeof(int), cudaMemcpyHostToDevice);
+          checkCUDAError("cudaMemcpy failed!");
 
           for (int d = nl - 1; d >= 0; d--) {
             int pow = 1 << (d);
             int pow1 = 1 << (d + 1);
-            kernDownSweep << <numBlocks, numThreads >> > (nPad, pow, pow1, dev_data);
+            dim3 nB((nPad / pow1 + blockSize - 1) / blockSize);
+            kernDownSweep <<<nB, numThreads>>> (nPad, pow, pow1, dev_data);
             checkCUDAError("kernDownSweep failed!");
           }
         }

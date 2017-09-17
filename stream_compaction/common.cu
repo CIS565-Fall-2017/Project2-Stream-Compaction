@@ -40,7 +40,6 @@ namespace StreamCompaction {
 
           if (bools[index] == 1)
             odata[indices[index]] = idata[index];
-          // odata[indices[index]] = bools[index] == 1 ? idata[index] : odata[indices[index]];
         }
     }
 }
