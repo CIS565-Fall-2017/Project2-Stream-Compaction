@@ -16,6 +16,12 @@ namespace StreamCompaction {
          * Performs prefix-sum (aka scan) on idata, storing the result into odata.
          */
         void scan(int n, int *odata, const int *idata) {
+			int twoPower = ilog2ceil(n);
+			int ceil;
+			for (int i = 1; i < 12; i++) {
+				ceil = ilog2ceil(i);
+				printf("%i : %i \n", i, ceil);
+			}
             timer().startGpuTimer();
             // TODO
             timer().endGpuTimer();
