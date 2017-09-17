@@ -15,7 +15,11 @@ anything here that you don't want to share with the world.)
 
 ## Results ##
 
+**1. Scan Test**
+
 ![](https://i.imgur.com/hMj3J8b.jpg)
+
+**2. Stream Compaction Test**
 
 ![](https://i.imgur.com/r6Fe9QO.jpg)
 
@@ -24,6 +28,10 @@ anything here that you don't want to share with the world.)
 # 2. Naive GPU Scan Compaction #
 
 ## Results ##
+
+**1. Scan Test**
+
+![](https://i.imgur.com/qZd1md3.jpg)
 
 ## Performance ##
 
@@ -37,11 +45,15 @@ anything here that you don't want to share with the world.)
 
 ## Results ##
 
+**1. Scan Test**
+
 ![](https://i.imgur.com/EHjIGAA.jpg)
 
 ## Performance ##
 
 # 5. Why is my GPU Approach so slow? (extra credits)#
+
+The result of Naive scanning is indeed far slower than 
 
 ## Results ##
 

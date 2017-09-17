@@ -5,8 +5,9 @@
 #include <thrust/scan.h>
 #include "common.h"
 #include "thrust.h"
-#include "thrust\remove.h"
-#include "thrust\execution_policy.h"
+#include "thrust/remove.h"
+#include "thrust/execution_policy.h"
+#include "thrust/copy.h"
 
 namespace StreamCompaction {
     namespace Thrust {
@@ -19,6 +20,14 @@ namespace StreamCompaction {
         /**
          * Performs prefix-sum (aka scan) on idata, storing the result into odata.
          */
+		struct is_zero
+		{
+			__host__ __device__
+				bool operator()(const int &x)
+			{
+				return (x == 0);
+			}
+		};
         void scan(int n, int *odata, const int *idata) {
             timer().startGpuTimer();
 
@@ -40,8 +49,13 @@ namespace StreamCompaction {
 			{
 				odata[j] = ho_out[j];
 			}
-			//odata = thrust::remove_if(thrust::host,ho_out,ho_out+n);
+			
             timer().endGpuTimer();
+
+			//remove_if
+
+			//odata = thrust::remove_if(thrust::host, odata, odata + n, is_zero());
+
         }
     }
 }

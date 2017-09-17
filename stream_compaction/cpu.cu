@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <iostream>
 #include "cpu.h"
 
 #include "common.h"
@@ -45,11 +46,6 @@ namespace StreamCompaction {
 					countOut++;
 				}
 			}
-/*			printf("The output array is:\n");
-			for (int i = 0; i < countOut;i++)
-			{
-				printf("%5d", &odata[i]);
-			}*/
 	        timer().endCpuTimer();
             return countOut;
         }
