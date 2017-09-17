@@ -25,6 +25,20 @@ anything here that you don't want to share with the world.)
 
 ## Performance ##
 
+**Scan Tests:**
+
+Power-of-two: 0.008692 ms
+
+Non-power-of-two: 0.001185 ms 
+
+**Compaction Tests:**
+
+Without Scan power-of-two: 0.003555 ms
+
+Without scan non-power-of-two: 0.00395 ms
+
+With scan: 0.005531 ms
+
 # 2. Naive GPU Scan Compaction #
 
 ## Results ##
@@ -34,6 +48,10 @@ anything here that you don't want to share with the world.)
 ![](https://i.imgur.com/qZd1md3.jpg)
 
 ## Performance ##
+
+Naive power-of-two: 1.65587 ms
+
+Naive non-power-of-two: 1.6399 ms
 
 # 3. Work Efficient GPU Scan & Stream Compaction #
 
@@ -51,9 +69,13 @@ anything here that you don't want to share with the world.)
 
 ## Performance ##
 
+Thrust power-of-two: 30.4844 ms
+
+Thrust non-power-of-two: 1.6409 ms
+
 # 5. Why is my GPU Approach so slow? (extra credits)#
 
-The result of Naive scanning is indeed far slower than 
+The result of Naive scanning as well as efficient are far more slower than CPU's results. 
 
 ## Results ##
 

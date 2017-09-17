@@ -16,7 +16,7 @@ namespace StreamCompaction {
         /**
          * Performs prefix-sum (aka scan) on idata, storing the result into odata.
          */
-		__global__ void EfficientScanAlgorithm(int* idata, int* odata, int n, int step)
+		__global__ void EfficientScanUpSweep(int* idata, int n, int step1,int step2)
 		{
 
 			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
@@ -25,32 +25,97 @@ namespace StreamCompaction {
 			{
 				return;
 			}
-			if (index >= step)
+			if ((index%step2 == 0) || (index == 0))
 			{
-				odata[index] = idata[index - step] + idata[index];
-			}
-			else
-			{
-				odata[index] = idata[index];
+				idata[index + step2 - 1] += idata[index + step1 - 1];
 			}
 
 		}
+
+		__global__ void EfficientScanDownSweep(int* idata, int n, int step1, int step2)
+		{
+			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
+
+			if ((index >= n) || (index < 0))
+			{
+				return;
+			}
+			if ((index%step2 == 0) || (index == 0))
+			{
+				int t = idata[index + step1 - 1];
+				idata[index + step1 - 1] = idata[index + step2 - 1];
+				idata[index + step2 - 1] += t;
+			}
+		}
+
+		__global__ void AssignInitial(int* idata, int n)
+		{
+			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
+			if (index == (n - 1))
+			{
+				idata[index] = 0;
+			}
+			return;
+		}
+
+		__global__ void AssignExtra(int size, int* extraArray)
+		{
+			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
+			if ((index >= size) || (index < 0))
+			{
+				return;
+			}
+			extraArray[index] = 0;
+		}
+
+		__global__ void EfficientScanDownSweepNonPower(int n, int* idata, int* extraArray, int step1, int step2)
+		{
+			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
+
+			if ((index >= n) || (index < 0))
+			{
+				return;
+			}
+
+			if ((index%step2 == 0) || (index == 0))
+			{
+				if (((index + step2 - 1) > n - 1) && ((index + step1 - 1) > n - 1)) 
+				{
+					int extraIndex2 = index + step2 - 1 - n;
+					int extraIndex1 = index + step1 - 1 - n;
+					int t = extraArray[extraIndex1];
+					extraArray[extraIndex1] = extraArray[extraIndex2];
+					extraArray[extraIndex2] += t;
+				}
+				else if((index + step2 - 1) > n - 1)
+				{
+					int extraIndex = index + step2 - 1 - n;
+					int t = idata[index + step1 - 1];
+					idata[index + step1 - 1] = extraArray[extraIndex];
+					extraArray[extraIndex] += t;
+				}
+				else
+				{
+					int t = idata[index + step1 - 1];
+					idata[index + step1 - 1] = idata[index + step2 - 1];
+					idata[index + step2 - 1] += t;
+				}
+			}
+		}
+
         void scan(int n, int *odata, const int *idata) {
             timer().startGpuTimer();
             // TODO
 			int blockSize = 256;
 			dim3 fullBlocksPerGrid((n + blockSize - 1) / blockSize);
 			const int memoryCopySize = n * sizeof(int);
-			int step;
+			int step1,step2;
 
 			//false means output is odata, true means output is idata
 			//bool outAndInFlag = false;
 
 			int* dev_idata;
 			int* dev_odata;
-			int* temp_odata;
-
-			temp_odata = (int*)malloc(memoryCopySize);
 
 			cudaMalloc((void**)&dev_idata, memoryCopySize);
 			checkCUDAError("cudaMalloc dev_idata failed!");
@@ -61,28 +126,54 @@ namespace StreamCompaction {
 			cudaMalloc((void**)&dev_odata, memoryCopySize);
 			checkCUDAError("cudaMalloc dev_odata failed!");
 
-			for (int d = 1;d <= ilog2ceil(n);d++)
+			for (int d = 0;d <= (ilog2ceil(n)-1);d++)
 			{
-				step = pow(2, d - 1);
-				EfficientScanAlgorithm << <fullBlocksPerGrid, blockSize >> > (dev_idata, dev_odata, n, step);
+				step1 = pow(2, d);
+				step2 = pow(2, d + 1);
+				EfficientScanUpSweep << <fullBlocksPerGrid, blockSize >> > (dev_idata, n, step1,step2);
 				cudaThreadSynchronize();
-				cudaMemcpy(dev_idata, dev_odata, memoryCopySize, cudaMemcpyDeviceToDevice);
-				cudaDeviceSynchronize();
 			}
 
-			cudaMemcpy(temp_odata, dev_idata, memoryCopySize, cudaMemcpyDeviceToHost);
-			cudaDeviceSynchronize();
-
-			odata[0] = 0;
-			for (int i = 1;i < n;i++)
+			//the ideal case of power-of-two
+			if (pow(2, ilog2ceil(n)) == n)
 			{
-				odata[i] = temp_odata[i - 1];
-			}
+				AssignInitial << <fullBlocksPerGrid, blockSize >> > (dev_idata, n);
+				cudaThreadSynchronize();
 
+				for (int d = (ilog2ceil(n) - 1);d >= 0;d--)
+				{
+					step1 = pow(2, d);
+					step2 = pow(2, d + 1);
+					EfficientScanDownSweep << <fullBlocksPerGrid, blockSize >> >(dev_idata, n, step1, step2);
+					cudaThreadSynchronize();
+				}
+			}
+			//the non-power-of-two cases
+			else
+			{
+				int numberToAdd = pow(2, ilog2ceil(n)) - n;
+				int* extraArray;
+				cudaMalloc((void**)&extraArray, numberToAdd * sizeof(int));
+
+				AssignExtra << <fullBlocksPerGrid, blockSize >> >(numberToAdd, extraArray);
+				cudaDeviceSynchronize();
+				for (int d = (ilog2ceil(n) - 1);d >= 0;d--)
+				{
+					step1 = pow(2, d);
+					step2 = pow(2, d + 1);
+					EfficientScanDownSweepNonPower << <fullBlocksPerGrid, blockSize >> >(n, dev_idata, extraArray, step1, step2);
+					cudaThreadSynchronize();
+				}		
+
+				cudaFree(extraArray);
+			}		
+
+			cudaMemcpy(odata, dev_idata, memoryCopySize, cudaMemcpyDeviceToHost);
+			cudaDeviceSynchronize();
+			
 			cudaFree(dev_idata);
 			cudaFree(dev_odata);
 
-			free(temp_odata);
             timer().endGpuTimer();
         }
 
@@ -129,22 +220,6 @@ namespace StreamCompaction {
 			odata[index] = -1;
 		}
 
-		__global__ void ScanDataTransfer(int* scannedDataIn, int* scannDataOut, int n)
-		{
-			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
-			if ((index >= n) || (index < 0))
-			{
-				return;
-			}
-			
-			if (index == 0)
-			{
-				scannDataOut[index] = 0;
-				return;
-			}
-			scannDataOut[index] = scannedDataIn[index - 1];
-		}
-
         /**
          * Performs stream compaction on idata, storing the result into odata.
          * All zeroes are discarded.
@@ -161,7 +236,7 @@ namespace StreamCompaction {
 			dim3 fullBlocksPerGrid((n + blockSize - 1) / blockSize);
 			const int memoryCopySize = n * sizeof(int);
 
-			int step;
+			int step1,step2;
 
 			int* scannedDataIn;
 			int* scannedDataOut;
@@ -195,27 +270,33 @@ namespace StreamCompaction {
 			cudaMemcpy(scannedDataIn, mappedData, memoryCopySize, cudaMemcpyDeviceToDevice);
 			checkCUDAError("cudaMemcpy scannedDataIn failed!");
 
-			for (int d = 1;d <= ilog2ceil(n);d++)
+			for (int d = 0;d <= (ilog2ceil(n) - 1);d++)
 			{
-				step = pow(2, d - 1);
-				EfficientScanAlgorithm << <fullBlocksPerGrid, blockSize >> > (scannedDataIn, scannedDataOut, n, step);
+				step1 = pow(2, d);
+				step2 = pow(2, d + 1);
+				EfficientScanUpSweep << <fullBlocksPerGrid, blockSize >> > (scannedDataIn, n, step1, step2);
 				cudaThreadSynchronize();
-				cudaMemcpy(scannedDataIn, scannedDataOut, memoryCopySize, cudaMemcpyDeviceToDevice);
-				cudaDeviceSynchronize();
 			}
 
-			ScanDataTransfer << <fullBlocksPerGrid, blockSize >> >(scannedDataIn, scannedDataOut, n);
+			AssignInitial << <fullBlocksPerGrid, blockSize >> > (scannedDataIn, n);
+			cudaThreadSynchronize();
+
+			for (int d = (ilog2ceil(n) - 1);d >= 0;d--)
+			{
+				step1 = pow(2, d);
+				step2 = pow(2, d + 1);
+				EfficientScanDownSweep << <fullBlocksPerGrid, blockSize >> >(scannedDataIn, n, step1, step2);
+				cudaThreadSynchronize();
+			}
+
+			cudaMemcpy(scannedDataOut, scannedDataIn, memoryCopySize, cudaMemcpyDeviceToDevice);
+			checkCUDAError("cudaMemcpy scannedDataOut failed!");
 			cudaDeviceSynchronize();
 
 			EfficientCompactAlgorithm << <fullBlocksPerGrid, blockSize >> > (n, dev_idata, dev_odata, mappedData, scannedDataOut);
 			cudaThreadSynchronize();
 
 			cudaMemcpy(odata, dev_odata, memoryCopySize, cudaMemcpyDeviceToHost);
-
-			//for (int i = 0;i < 10; i++)
-			//{
-			//	std::cout << odata[i] << std::endl;
-			//}
 
 			int count = 0;
 			int value = odata[count];
