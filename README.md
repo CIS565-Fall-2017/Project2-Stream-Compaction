@@ -96,7 +96,7 @@ __global__ void cudaSweepUp(int n, int d, int *data) {
 __global__ void cudaSweepDown(int n, int d, int *data) {
   int index = threadIdx.x + (blockIdx.x * blockDim.x);
   int interval_length = 1 << (d + 1);
-  // k from 0 to n-1
+  // k from 0 to (n-1)/interval_length
   if (index >= n)
     return;
 
