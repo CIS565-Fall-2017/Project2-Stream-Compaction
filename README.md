@@ -119,7 +119,7 @@ According to the images, when the input length is lower than 2^12, the ***CPU-Sc
 ___
 * ***Roughly optimize the block sizes of each of your implementations for minimal run time on your GPU.***
 
-  ![](./results/blockSizecomparison.JP)
+  ![](./results/blockSize_comparison.JP)
   Actually, it seems no difference between different blockSize in my experiment. 
 
 * ***Compare all of these GPU Scan implementations (Naive, Work-Efficient, and Thrust) to the serial CPU version of Scan. Plot a graph of the comparison (with array size on the independent axis).***
