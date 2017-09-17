@@ -56,7 +56,7 @@ __global__ void non_opt_cudaSweepDown(int n, int d, int *data) {
     data[index + (1 << d) - 1] = data[index + (1 << (d + 1)) - 1];
     data[index + (1 << (d + 1)) - 1] += temp;
   }
-		}
+}
 ```
 
 #### *optimized version*
