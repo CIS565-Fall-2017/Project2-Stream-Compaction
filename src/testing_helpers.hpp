@@ -51,6 +51,28 @@ void genArray(int n, int *a, int maxval) {
     }
 }
 
+
+
+void shuffleArray(int n, int *a)
+{
+	for (int i = 0; i < n; i++)
+	{
+		a[i] = i;
+	}
+
+	if (n > 1)
+	{
+		int i;
+		for (i = 0; i < n - 1; i++)
+		{
+			int j = i + rand() / (RAND_MAX / (n - i) + 1);
+			int t = a[j];
+			a[j] = a[i];
+			a[i] = t;
+		}
+	}
+}
+
 void printArray(int n, int *a, bool abridged = false) {
     printf("    [ ");
     for (int i = 0; i < n; i++) {
