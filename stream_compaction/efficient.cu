@@ -16,8 +16,11 @@ namespace StreamCompaction {
          * Performs prefix-sum (aka scan) on idata, storing the result into odata.
          */
         void scan(int n, int *odata, const int *idata) {
+            
             timer().startGpuTimer();
-            // TODO
+            
+            
+
             timer().endGpuTimer();
         }
 
