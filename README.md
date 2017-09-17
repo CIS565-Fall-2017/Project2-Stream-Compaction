@@ -134,6 +134,8 @@ ___
   
 * ***Paste the output of the test program into a triple-backtick block in your README.***
 
+**input length** = 2^22
+
 ```
 
 ****************
