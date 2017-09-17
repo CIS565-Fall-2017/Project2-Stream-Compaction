@@ -55,8 +55,6 @@ namespace StreamCompaction {
 			 will need to be rounded to the next power of two.
          */
         void scan(int n, int *odata, const int *idata) {
-            timer().startGpuTimer();
-            
 			// TODO
 			
 			//If non-power-of-two sized array, round to next power of two
@@ -65,11 +63,11 @@ namespace StreamCompaction {
 
 			if (n % 2 != 0)
 			{
-				new_n = 1 << ilog2ceil(n);//ilog2ceil(n) + n;	//<--- THIS IS WRONG
+				new_n = 1 << ilog2ceil(n);
 				new_idata = new int[new_n];
 				
-				//fill the rest of the space with 0's
-				for (int i = 0; i <= new_n; i++)		//SHOULD THIS BE < or <=????
+				//Fill the rest of the space with 0's
+				for (int i = 0; i < new_n; i++)		//SHOULD THIS BE < or <=????
 				{
 					if (i < n)
 					{
@@ -98,7 +96,15 @@ namespace StreamCompaction {
 			cudaMemcpy(inArray, new_idata, sizeof(int) * new_n, cudaMemcpyHostToDevice);
 			cudaThreadSynchronize();
 			
-
+			bool timerHasStartedElsewhere = false;
+			try
+			{
+				timer().startGpuTimer();
+			}
+			catch (std::runtime_error &e)
+			{
+				timerHasStartedElsewhere = true;
+			}
 
 			//Up sweep
 			for (int d = 0; d <= ilog2ceil(new_n) - 1; d++)
@@ -123,13 +129,16 @@ namespace StreamCompaction {
 				cudaThreadSynchronize();
 			}
 
+			if (!timerHasStartedElsewhere)
+			{
+				timer().endGpuTimer();
+			}
+
 			//Transfer to odata
 			cudaMemcpy(odata, inArray, sizeof(int) * (new_n), cudaMemcpyDeviceToHost);
 
 			//Free the temp device array
 			cudaFree(inArray);
-
-            timer().endGpuTimer();
         }//end scan function 
 
         /**
@@ -142,10 +151,71 @@ namespace StreamCompaction {
          * @returns      The number of elements remaining after compaction.
          */
         int compact(int n, int *odata, const int *idata) {
-            timer().startGpuTimer();
-            // TODO
-            timer().endGpuTimer();
-            return -1;
+			// TODO
+			
+			dim3 fullBlocksPerGrid((n + blockSize - 1) / blockSize);
+			
+			int *inArray;
+			int *boolsArray;
+			cudaMalloc((void**)&inArray, n * sizeof(int));
+			checkCUDAError("cudaMalloc inArray failed!");
+			cudaMalloc((void**)&boolsArray, n * sizeof(int));
+			checkCUDAError("cudaMalloc boolsArray failed!");
+
+			int* scan_in = new int[n];
+			int* scan_out = new int[n];
+
+			int *scatter_in;
+			int *scatter_out;
+			cudaMalloc((void**)&scatter_in, n * sizeof(int));
+			checkCUDAError("cudaMalloc scatter_in failed!");
+			cudaMalloc((void**)&scatter_out, n * sizeof(int));
+			checkCUDAError("cudaMalloc scatter_out failed!");
+
+			cudaThreadSynchronize();
+
+			//Copy input data to GPU
+			cudaMemcpy(inArray, idata, sizeof(int) * n, cudaMemcpyHostToDevice);
+
+			timer().startGpuTimer();
+
+			//Call kernMapToBoolean to map values to bool array
+			Common::kernMapToBoolean<<<fullBlocksPerGrid, blockSize>>>(n, boolsArray, inArray);
+
+			//Copy back to host array, find how many fulfilled condition, and run exclusive scan
+			cudaMemcpy(scan_in, boolsArray, sizeof(int) * n, cudaMemcpyDeviceToHost);
+
+			int numPassedElements = 0;
+			for (int i = 0; i < n; i++)
+			{
+				if (scan_in[i] == 1)
+				{
+					numPassedElements++;
+				}
+			}
+
+			scan(n, scan_out, scan_in);
+
+			//Copy output of CPU scan to scatter device array
+			cudaMemcpy(scatter_in, scan_out, sizeof(int) * n, cudaMemcpyHostToDevice);
+			
+			//Call kernScatter with scanned boolsArray
+			Common::kernScatter<<<fullBlocksPerGrid, blockSize>>>(n, scatter_out, inArray, boolsArray, scatter_in);
+
+			timer().endGpuTimer();
+
+			//SCATTER OUT ISNT GONNA BE THE SAME SIZE AS N
+			//Should I replace n with numPassedElements? 
+			cudaMemcpy(odata, scatter_out, sizeof(int) * n, cudaMemcpyDeviceToHost);
+
+			//Free the device arrays
+			cudaFree(inArray);
+			cudaFree(boolsArray);
+			cudaFree(scatter_in);
+			cudaFree(scatter_out);
+
+            return numPassedElements;
+
         }//end compact function
     }//end namespace Efficient
 }//end namespace StreamCompaction
