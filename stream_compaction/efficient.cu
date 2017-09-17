@@ -19,13 +19,6 @@ namespace StreamCompaction {
           odata[index] = (index >= pow) ? idata[index - pow] + idata[index] : idata[index];
         }
 
-        __global__ void kernInToEx(int n, int *odata, const int *idata) {
-          int index = blockIdx.x * blockDim.x + threadIdx.x;
-          if (index >= n) return;
-
-          odata[index] = (index == 0) ? 0 : idata[index - 1];
-        }
-
         // Kernel to pad the new array with 0s
         __global__ void kernPadWithZeros(const int n, const int nPad, int *dev_data) {
           int index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -50,6 +43,28 @@ namespace StreamCompaction {
           dev_data[index] += t;
         }
 
+        void scan_implementation(const int nl, const dim3 numBlocks, const dim3 numThreads,
+          const int nPad, int*dev_data) {
+
+          for (int d = 0; d < nl; d++) {
+            int pow = 1 << (d);
+            int pow1 = 1 << (d + 1);
+            kernUpSweep << <numBlocks, numThreads >> > (nPad, pow, pow1, dev_data);
+            checkCUDAError("kernUpSweep failed!");
+          }
+
+          //dev_data[nPad - 1] = 0; // set last element to 0 before downsweep.. 
+          int zero = 0;
+          cudaMemcpy(dev_data + nPad - 1, &zero, sizeof(int), cudaMemcpyHostToDevice);
+
+          for (int d = nl - 1; d >= 0; d--) {
+            int pow = 1 << (d);
+            int pow1 = 1 << (d + 1);
+            kernDownSweep << <numBlocks, numThreads >> > (nPad, pow, pow1, dev_data);
+            checkCUDAError("kernDownSweep failed!");
+          }
+        }
+
         /**
          * Performs prefix-sum (aka scan) on idata, storing the result into odata.
          */
@@ -72,28 +87,12 @@ namespace StreamCompaction {
           checkCUDAError("cudaMemcpy for dev_data failed!");
           
           // Fill the padded part of dev_data with 0s..
-          kernPadWithZeros <<<numBlocks, numThreads >>> (n, nPad, dev_data);
+          kernPadWithZeros <<<numBlocks, numThreads>>> (n, nPad, dev_data);
 
           timer().startGpuTimer();
           // Work Efficient Scan - Creates exclusive scan output
 
-          for (int d = 0; d < nl; d++) {
-            int pow = 1 << (d);
-            int pow1 = 1 << (d + 1);
-            kernUpSweep <<<numBlocks, numThreads>>> (nPad, pow, pow1, dev_data);
-            checkCUDAError("kernUpSweep failed!");
-          }
-          
-          //dev_data[nPad - 1] = 0; // set last element to 0 before downsweep.. 
-          int zero = 0;
-          cudaMemcpy(dev_data + nPad - 1, &zero, sizeof(int), cudaMemcpyHostToDevice);
-
-          for (int d = nl - 1; d >= 0; d--) {
-            int pow = 1 << (d);
-            int pow1 = 1 << (d + 1);
-            kernDownSweep <<<numBlocks, numThreads>>> (nPad, pow, pow1, dev_data);
-            checkCUDAError("kernDownSweep failed!");
-          }
+          scan_implementation(nl, numBlocks, numThreads, nPad, dev_data);
 
           timer().endGpuTimer();
 
@@ -116,10 +115,71 @@ namespace StreamCompaction {
          * @returns      The number of elements remaining after compaction.
          */
         int compact(int n, int *odata, const int *idata) {
-            timer().startGpuTimer();
-            // TODO
-            timer().endGpuTimer();
-            return -1;
+          int nSize = n * sizeof(int);
+          int nl = ilog2ceil(n);
+          int nPad = 1 << nl;
+          int nPadSize = nPad * sizeof(int);
+
+          int *dev_idata, *dev_odata, *dev_bools, *dev_indices;
+          cudaMalloc((void**)&dev_idata, nSize);
+          checkCUDAError("cudaMalloc for dev_idata failed!");
+
+          cudaMalloc((void**)&dev_odata, nSize);
+          checkCUDAError("cudaMalloc for dev_odata failed!");
+
+          cudaMalloc((void**)&dev_bools, nSize);
+          checkCUDAError("cudaMalloc for dev_bools failed!");
+
+          cudaMalloc((void**)&dev_indices, nPadSize);
+          checkCUDAError("cudaMalloc for dev_indices failed!");
+
+          // Copy device arrays to device
+          cudaMemcpy(dev_idata, idata, nSize, cudaMemcpyHostToDevice);
+          checkCUDAError("cudaMemcpy for dev_data failed!");
+
+          dim3 numBlocks((n + blockSize - 1) / blockSize);
+          dim3 numBlocksPadded((nPad + blockSize - 1) / blockSize);
+          dim3 numThreads(blockSize);
+
+          timer().startGpuTimer();
+          
+          // Create bools array
+          StreamCompaction::Common::kernMapToBoolean <<<numBlocks, numThreads>>> (n, dev_bools, dev_idata);
+          checkCUDAError("cudaMemcpy for kernMapToBoolean failed!");
+
+          // Copy bools array to indices array - device to device
+          cudaMemcpy(dev_indices, dev_bools, nSize, cudaMemcpyDeviceToDevice);
+          checkCUDAError("cudaMemcpy for dev_indices failed!");
+          // Pad the extended array with 0s
+          kernPadWithZeros <<<numBlocks, numThreads>>> (n, nPad, dev_indices);
+          checkCUDAError("cudaMemcpy for kernPadWithZeros failed!");
+
+          // Work Efficient Scan
+          scan_implementation(nl, numBlocksPadded, numThreads, nPad, dev_indices);
+          
+          // Scatter
+          StreamCompaction::Common::kernScatter <<<numBlocks, numThreads>>> (n, dev_odata, dev_idata, dev_bools, dev_indices);
+          checkCUDAError("cudaMemcpy for kernScatter failed!");
+
+          timer().endGpuTimer();
+
+          int newSize, indEnd, boolEnd;
+          cudaMemcpy(&indEnd, dev_indices + n - 1, sizeof(int), cudaMemcpyDeviceToHost);
+          cudaMemcpy(&boolEnd, dev_bools + n - 1, sizeof(int), cudaMemcpyDeviceToHost);
+          newSize = indEnd + boolEnd;
+          //printf("%d",newSize);
+
+          // Copy device arrays back to host
+          cudaMemcpy(odata, dev_odata, nSize, cudaMemcpyDeviceToHost);
+          checkCUDAError("cudaMemcpy (device to host) for odata failed!");
+
+          // Free memory
+          cudaFree(dev_idata);
+          cudaFree(dev_odata);
+          cudaFree(dev_bools);
+          cudaFree(dev_indices);
+          checkCUDAError("cudaFree failed!");
+          return newSize;
         }
     }
 }
