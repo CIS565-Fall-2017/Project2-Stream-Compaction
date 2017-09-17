@@ -106,7 +106,7 @@ namespace StreamCompaction {
 			int *dbools;
 			int *dev_in;
 			int *dev_out;
-			int *indices;
+			// int *indices;
 
 			cudaMalloc((void**)&dbools, (n + 1) * sizeof(int));
 			checkCUDAError("cudaMalloc bools failed!");
@@ -125,6 +125,9 @@ namespace StreamCompaction {
 
 			scan_implementation(n + 1, dbools);
 
+			cudaMalloc((void**)&dev_out, n * sizeof(int));
+			checkCUDAError("cudaMalloc dev_out failed!");
+
 			dim3 blocksPerGrid((n + blockSize - 1) / blockSize);
 			StreamCompaction::Common::kernScatter << <blocksPerGrid, blockSize >> > (n, dev_out, dev_in, dbools);
 			checkCUDAError("kernScatter failed!");
@@ -137,8 +140,16 @@ namespace StreamCompaction {
 			int *num = (int *)malloc(sizeof(int));
 			cudaMemcpy(num, dbools + n , sizeof(int), cudaMemcpyDeviceToHost);
 			checkCUDAError("cudaMemcpyDeviceToHost failed!");
+
+			int ret = *num;
+			free(num);
+
+			cudaFree(dbools);
+			cudaFree(dev_in);
+			cudaFree(dev_out);
+			// cudaFree(indices);
             
-            return *num;
+            return ret;
         }
     }
 }
