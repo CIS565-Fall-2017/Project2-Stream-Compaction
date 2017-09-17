@@ -2,6 +2,7 @@
 #include "cpu.h"
 
 #include "common.h"
+#define TEST_TIME_IN_SCAN 0
 
 namespace StreamCompaction {
     namespace CPU {
@@ -18,9 +19,16 @@ namespace StreamCompaction {
          * (Optional) For better understanding before starting moving to GPU, you can simulate your GPU scan in this function first.
          */
         void scan(int n, int *odata, const int *idata) {
+#if TEST_TIME_IN_SCAN
 	        timer().startCpuTimer();
-            // TODO
+#endif
+          odata[0] = 0;
+          for (int i = 1; i < n; ++i) {
+            odata[i] = idata[i - 1] + odata[i - 1];
+          }
+#if TEST_TIME_IN_SCAN
 	        timer().endCpuTimer();
+#endif
         }
 
         /**
@@ -29,10 +37,15 @@ namespace StreamCompaction {
          * @returns the number of elements remaining after compaction.
          */
         int compactWithoutScan(int n, int *odata, const int *idata) {
+          int nextEmptyIdx = 0;
 	        timer().startCpuTimer();
-            // TODO
+          for (int i = 0; i < n; ++i) {
+            if (idata[i]) {
+              odata[nextEmptyIdx++] = idata[i];
+            }
+          }
 	        timer().endCpuTimer();
-            return -1;
+            return nextEmptyIdx;
         }
 
         /**
@@ -41,10 +54,23 @@ namespace StreamCompaction {
          * @returns the number of elements remaining after compaction.
          */
         int compactWithScan(int n, int *odata, const int *idata) {
+          int *temp = (int*) malloc(n * sizeof(int));
+          int *scannedTemp = (int*)malloc(n * sizeof(int));
 	        timer().startCpuTimer();
-	        // TODO
+	        // calculate temp array
+          for (int i = 0; i < n; ++i) {
+            temp[i] = (idata[i]) ? 1 : 0;
+          }
+          // scan
+          scan(n, scannedTemp, temp);
+          // scatter
+          for (int i = 0; i < n; ++i) {
+            if (temp[i]) {
+              odata[scannedTemp[i]] = idata[i];
+            }
+          }
 	        timer().endCpuTimer();
-            return -1;
+            return scannedTemp[n - 1] + (temp[n - 1] ? 1 : 0);
         }
     }
 }
