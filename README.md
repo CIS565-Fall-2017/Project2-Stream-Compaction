@@ -8,7 +8,7 @@ CUDA Stream Compaction
 
 ### Result
 
-![](img/result.png)
+![](img/Result.png)
 
 ### Complete Specs
 
