@@ -109,13 +109,6 @@ int compact(int n, int *odata, const int *idata) {
   Common::kernMapToBoolean<<<fullBlocksPerGrid, BLOCK_SIZE>>>(n, dev_array_bool, dev_array_data);
   cudaMemcpy(dev_array_indices, dev_array_bool, arr_length * sizeof(int), cudaMemcpyDeviceToDevice);
   scan_impl(arr_length, dev_array_indices);
-
-  // int *temp = (int*)malloc(n * sizeof(int));
-  // cudaMemcpy(temp, dev_array_indices, n * sizeof(int), cudaMemcpyDeviceToHost);
-  // for (int i = 0; i < n; ++i) {
-  //   std::cout << temp[i] << "\n";
-  // }
-
   Common::kernScatter<<<fullBlocksPerGrid, BLOCK_SIZE>>>(n, dev_array_out, dev_array_data, dev_array_bool, dev_array_indices);
   timer().endGpuTimer();
   cudaMemcpy(odata, dev_array_out, n*sizeof(int), cudaMemcpyDeviceToHost);
