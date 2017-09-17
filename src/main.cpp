@@ -139,5 +139,21 @@ int main(int argc, char* argv[]) {
     //printArray(count, c, true);
     printCmpLenResult(count, expectedNPOT, b, c);
 
+
+	printf("\n");
+	printf("*****************************\n");
+	printf("** Radix Sort TEST **\n");
+	printf("*****************************\n");
+	genArray(15, a, 16);
+	printf("Randomly Generate Array with maxmium 16.\n");
+	printArray(15, a, true);
+
+	zeroArray(15, b);
+	StreamCompaction::CPU::quickSort(15, b, a);
+	printElapsedTime(StreamCompaction::CPU::timer().getCpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
+	printf("qosrt Result : \n");
+	printArray(15, b, true);
+
+
     system("pause"); // stop Win32 console from closing on exit
 }
