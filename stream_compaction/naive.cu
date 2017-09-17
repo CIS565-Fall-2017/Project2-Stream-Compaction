@@ -67,8 +67,6 @@ namespace StreamCompaction {
 
       kernShift << <numBlocks, BLOCK_SIZE >> > (n, dev_input, dev_output1);
 
-      cudaMemcpy(odata, dev_output1, n * sizeof(int), cudaMemcpyDeviceToHost);
-
       for (d = 1; d <= ilog2ceil(n); d++)
       {
         offset = pow(2, d - 1);
