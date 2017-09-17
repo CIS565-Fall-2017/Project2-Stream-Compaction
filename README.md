@@ -118,18 +118,22 @@ According to the images, when the input length is lower than 2^12, the ***CPU-Sc
 ### Questions
 ___
 * ***Roughly optimize the block sizes of each of your implementations for minimal run time on your GPU.***
+
   ![](./results/blockSizecomparison.JP)
   Actually, it seems no difference between different blockSize in my experiment. 
 
 * ***Compare all of these GPU Scan implementations (Naive, Work-Efficient, and Thrust) to the serial CPU version of Scan. Plot a graph of the comparison (with array size on the independent axis).***
+
   See in ***Performance Analysis***
   The reason why ***Thrust*** is much better than others, I guess it could because ***Thrust*** method takes the advantage of *shared memory* in GPU. It has much lower memory accessing time than others.
   
 * ***Write a brief explanation of the phenomena you see here.***
+
   It's obvious that ***CPU-scan*** is slower than ***Naive-Scan***, ***Optimized Efficient Scan*** and ***Thrust*** is because of the parralled computation. 
   For ***Non-optimized version*** and ***Optimized version***, this is because that the ***non-opt version*** uses `n` threads each loop, and most of them are useless. While the ***opt version*** only uses `n/(2^(d+1))` threads each loop, which is the number of the additions, this save lots of the threads wasting.
   
 * ***Paste the output of the test program into a triple-backtick block in your README.***
+
 ```
 
 ****************
