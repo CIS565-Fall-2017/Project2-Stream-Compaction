@@ -56,7 +56,7 @@ __global__ void non_opt_cudaSweepDown(int n, int d, int *data) {
     data[index + (1 << d) - 1] = data[index + (1 << (d + 1)) - 1];
     data[index + (1 << (d + 1)) - 1] += temp;
   }
-		}
+}
 ```
 
 #### *optimized version*
@@ -96,7 +96,7 @@ __global__ void cudaSweepUp(int n, int d, int *data) {
 __global__ void cudaSweepDown(int n, int d, int *data) {
   int index = threadIdx.x + (blockIdx.x * blockDim.x);
   int interval_length = 1 << (d + 1);
-  // k from 0 to n-1
+  // k from 0 to (n-1)/interval_length
   if (index >= n)
     return;
 
@@ -119,7 +119,7 @@ According to the images, when the input length is lower than 2^12, the ***CPU-Sc
 ___
 * ***Roughly optimize the block sizes of each of your implementations for minimal run time on your GPU.***
 
-  ![](./results/blockSizecomparison.JP)
+  ![](./results/blockSize_comparison.JPG)
   Actually, it seems no difference between different blockSize in my experiment. 
 
 * ***Compare all of these GPU Scan implementations (Naive, Work-Efficient, and Thrust) to the serial CPU version of Scan. Plot a graph of the comparison (with array size on the independent axis).***
@@ -133,6 +133,8 @@ ___
   For ***Non-optimized version*** and ***Optimized version***, this is because that the ***non-opt version*** uses `n` threads each loop, and most of them are useless. While the ***opt version*** only uses `n/(2^(d+1))` threads each loop, which is the number of the additions, this save lots of the threads wasting.
   
 * ***Paste the output of the test program into a triple-backtick block in your README.***
+
+**input length** = 2^22
 
 ```
 
