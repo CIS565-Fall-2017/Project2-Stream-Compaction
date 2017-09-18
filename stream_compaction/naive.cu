@@ -14,20 +14,20 @@ namespace StreamCompaction {
 
         __global__ void kernNaiveScan(int n, int powTwo, int *odata, const int* idata)
         {
-          int index = threadIdx.x + blockIdx.x * blockDim.x;
-          if (index >= n)
-          {
-              return;
-          }
+            int index = threadIdx.x + blockIdx.x * blockDim.x;
+            if (index >= n)
+            {
+                return;
+            }
 
-          if (index >= powTwo)
-          {
-              odata[index] = idata[index - powTwo] + idata[index];
-          }
-          else
-          {
-              odata[index] = idata[index];
-          }
+            if (index >= powTwo)
+            {
+                odata[index] = idata[index - powTwo] + idata[index];
+            }
+            else
+            {
+                odata[index] = idata[index];
+            }
         }
 
         __global__ void kernExclToInclScan(int n, int* odata, const int* idata)
@@ -35,12 +35,12 @@ namespace StreamCompaction {
             int index = threadIdx.x + blockIdx.x * blockDim.x;
             if (index >= n)
             {
-              return;
+                return;
             }
 
             if (index == 0)
             {
-                odata[index] == 0;
+                odata[0] == 0;
                 return;
             }
 
@@ -71,32 +71,35 @@ namespace StreamCompaction {
 
             // Copy the input data array to the device
             cudaMemcpy(dev_parallelArrayA, idata, numArrayBytes, cudaMemcpyHostToDevice);
+            checkCUDAError("memcpy failed!", __LINE__);
 
             // Kernel configuration
             float blockSize = 64.f;
             dim3 threadsPerBlock(blockSize);
-            dim3 fullBlocksPerGrid((((float) n) + blockSize - 1.f) / blockSize);
+            dim3 fullBlocksPerGrid((((float)n) + blockSize - 1.f) / blockSize);
             int nLog2 = ilog2ceil(n);
             bool isReadingFromA = true;
 
             timer().startGpuTimer();
-            
+
             for (int d = 1; d <= nLog2; ++d)
             {
-              int powTwo = pow(2, d - 1);
-              if (isReadingFromA)
-              {
-                  // Perform the *INCLUSIVE* scan
-                  kernNaiveScan << < fullBlocksPerGrid, threadsPerBlock >> > (n, powTwo, dev_parallelArrayB, dev_parallelArrayA);
-                  cudaMemcpy(dev_parallelArrayA, dev_parallelArrayB, numArrayBytes, cudaMemcpyDeviceToDevice);
-              }
-              else
-              {
-                  // Perform the scan
-                  kernNaiveScan << < fullBlocksPerGrid, threadsPerBlock >> > (n, powTwo, dev_parallelArrayA, dev_parallelArrayB);
-                  cudaMemcpy(dev_parallelArrayB, dev_parallelArrayA, numArrayBytes, cudaMemcpyDeviceToDevice);
-              }
-              isReadingFromA = !isReadingFromA;
+                int powTwo = pow(2, d - 1);
+                if (isReadingFromA)
+                {
+                    // Perform the *INCLUSIVE* scan
+                    kernNaiveScan << < fullBlocksPerGrid, threadsPerBlock >> > (n, powTwo, dev_parallelArrayB, dev_parallelArrayA);
+                    cudaMemcpy(dev_parallelArrayA, dev_parallelArrayB, numArrayBytes, cudaMemcpyDeviceToDevice);
+                    checkCUDAError("memcpy failed!", __LINE__);
+                }
+                else
+                {
+                    // Perform the *INCLUSIVE* scan
+                    kernNaiveScan << < fullBlocksPerGrid, threadsPerBlock >> > (n, powTwo, dev_parallelArrayA, dev_parallelArrayB);
+                    cudaMemcpy(dev_parallelArrayB, dev_parallelArrayA, numArrayBytes, cudaMemcpyDeviceToDevice);
+                    checkCUDAError("memcpy failed!", __LINE__);
+                }
+                isReadingFromA = !isReadingFromA;
             }
 
             timer().endGpuTimer();
@@ -106,11 +109,13 @@ namespace StreamCompaction {
             {
                 kernExclToInclScan << < fullBlocksPerGrid, threadsPerBlock >> > (n, dev_odata, dev_parallelArrayA);
                 cudaMemcpy(odata, dev_odata, numArrayBytes, cudaMemcpyDeviceToHost);
+                checkCUDAError("memcpy failed!", __LINE__);
             }
             else
             {
                 kernExclToInclScan << < fullBlocksPerGrid, threadsPerBlock >> > (n, dev_odata, dev_parallelArrayB);
                 cudaMemcpy(odata, dev_odata, numArrayBytes, cudaMemcpyDeviceToHost);
+                checkCUDAError("memcpy failed!", __LINE__);
             }
 
             // CUDA Frees
