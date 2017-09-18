@@ -60,6 +60,23 @@ int main(int argc, char* argv[]) {
     //printArray(SIZE, c, true);
     printCmpResult(NPOT, b, c);
 
+
+	///------------EC : navie Dynamic Shared Memo Test--------------------
+	zeroArray(SIZE, c);
+	printDesc("naive scan(Dynamic Share Memory), power-of-two");
+	StreamCompaction::Naive::scanDynamicShared(SIZE, c, a);
+	printElapsedTime(StreamCompaction::Naive::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
+	//printArray(SIZE, c, true);
+	printCmpResult(SIZE, b, c);
+
+	zeroArray(SIZE, c);
+	printDesc("naive scan(Dynamic Share Memory), non-power-of-two");
+	StreamCompaction::Naive::scanDynamicShared(NPOT, c, a);
+	printElapsedTime(StreamCompaction::Naive::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
+	//printArray(SIZE, c, true);
+	printCmpResult(NPOT, b, c);
+	///-------------------------------------------------------------------------
+
     zeroArray(SIZE, c);
     printDesc("work-efficient scan, power-of-two");
     StreamCompaction::Efficient::scan(SIZE, c, a);
@@ -73,6 +90,24 @@ int main(int argc, char* argv[]) {
     printElapsedTime(StreamCompaction::Efficient::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
     //printArray(NPOT, c, true);
     printCmpResult(NPOT, b, c);
+
+	///------------EC : efficient Dynamic Shared Memo Test--------------------
+	zeroArray(SIZE, c);
+	printDesc("work-efficient scan(Dynamic Share Memory), power-of-two");
+	StreamCompaction::Efficient::scanDynamicShared(SIZE, c, a);
+	printElapsedTime(StreamCompaction::Efficient::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
+	//printArray(SIZE, c, true);
+	printCmpResult(SIZE, b, c);
+
+	zeroArray(SIZE, c);
+	printDesc("work-efficient scan(Dynamic Share Memory), non-power-of-two");
+	StreamCompaction::Efficient::scanDynamicShared(NPOT, c, a);
+	printElapsedTime(StreamCompaction::Efficient::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
+	//printArray(SIZE, c, true);
+	printCmpResult(NPOT, b, c);
+	///-------------------------------------------------------------------------
+
+
 
     zeroArray(SIZE, c);
     printDesc("thrust scan, power-of-two");
