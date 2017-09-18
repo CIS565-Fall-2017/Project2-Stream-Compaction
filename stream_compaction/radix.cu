@@ -2,6 +2,7 @@
 #include <cuda_runtime.h>
 #include "common.h"
 #include "efficient.h"
+#include "sharedandbank.h"
 #include "radix.h"
 
 namespace StreamCompaction {
@@ -88,31 +89,33 @@ namespace StreamCompaction {
 				//gen e	//for (int i = 0; i < n; ++i) { e[i] = (ibuf[i] & mask) == mask ? 0 : 1; }
 				kernGenE << <gridDim, blockSize >> > (n, mask, dev_e, dev_ibuf);
 
-				{//generate f (scan)
-					cudaMemcpy(dev_f, dev_e, numbytes_copy, cudaMemcpyDeviceToDevice);
-					checkCUDAError("cudaMemcpy from to dev_e dev_f failed!");
+				//{//generate f (scan)
+				//	cudaMemcpy(dev_f, dev_e, numbytes_copy, cudaMemcpyDeviceToDevice);
+				//	checkCUDAError("cudaMemcpy from to dev_e dev_f failed!");
 
-					int gridDim = (pow2roundedsize + blockSize - 1) / blockSize;
+				//	int gridDim = (pow2roundedsize + blockSize - 1) / blockSize;
 
-					//the algo works on pow2 sized arrays so we size up the array to the next pow 2 if it wasn't a pow of 2 to begin with
-					//then we need to fill data after index n-1 with zeros 
-					StreamCompaction::Efficient::kernZeroExcessLeaves<<<gridDim, blockSize>>>(pow2roundedsize, n, dev_f);
+				//	//the algo works on pow2 sized arrays so we size up the array to the next pow 2 if it wasn't a pow of 2 to begin with
+				//	//then we need to fill data after index n-1 with zeros 
+				//	StreamCompaction::Efficient::kernZeroExcessLeaves<<<gridDim, blockSize>>>(pow2roundedsize, n, dev_f);
 
-					for (int offset = 1; offset < pow2roundedsize; offset <<= 1) {
-						gridDim = ((pow2roundedsize >> ilog2(offset<<1)) + blockSize - 1) / blockSize;
-						StreamCompaction::Efficient::kernScanUp<<<gridDim, blockSize>>>(pow2roundedsize, offset << 1, offset, dev_f);
-					}
+				//	for (int offset = 1; offset < pow2roundedsize; offset <<= 1) {
+				//		gridDim = ((pow2roundedsize >> ilog2(offset<<1)) + blockSize - 1) / blockSize;
+				//		StreamCompaction::Efficient::kernScanUp<<<gridDim, blockSize>>>(pow2roundedsize, offset << 1, offset, dev_f);
+				//	}
 
-					//make sure last index value is 0 before we downsweep
-					const int zero = 0;
-					cudaMemcpy(dev_f + pow2roundedsize - 1, &zero, sizeof(int), cudaMemcpyHostToDevice);
-					checkCUDAError("cudaMemcpy from zero to dev_data failed!");
+				//	//make sure last index value is 0 before we downsweep
+				//	const int zero = 0;
+				//	cudaMemcpy(dev_f + pow2roundedsize - 1, &zero, sizeof(int), cudaMemcpyHostToDevice);
+				//	checkCUDAError("cudaMemcpy from zero to dev_data failed!");
 
-					for (int offset = pow2roundedsize >> 1; offset > 0; offset >>= 1) {
-						gridDim = ((pow2roundedsize >> ilog2(offset<<1)) + blockSize - 1) / blockSize;
-						StreamCompaction::Efficient::kernScanDown<<<gridDim, blockSize>>>(pow2roundedsize, offset << 1, offset, dev_f);
-					}
-				}//end generate f (scan)
+				//	for (int offset = pow2roundedsize >> 1; offset > 0; offset >>= 1) {
+				//		gridDim = ((pow2roundedsize >> ilog2(offset<<1)) + blockSize - 1) / blockSize;
+				//		StreamCompaction::Efficient::kernScanDown<<<gridDim, blockSize>>>(pow2roundedsize, offset << 1, offset, dev_f);
+				//	}
+				//}//end generate f (scan)
+
+				StreamCompaction::SharedAndBank::scanNoMalloc(pow2roundedsize, dev_f, dev_e);
 
 				//find totalFalses
 				int eEND, fEND;

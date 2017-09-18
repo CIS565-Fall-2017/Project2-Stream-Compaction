@@ -59,7 +59,8 @@ namespace StreamCompaction {
 			//if (usetimer) { timer().startGpuTimer(); }
 			timer().startGpuTimer();
 			for (int offset = 1; offset < pow2roundedsize; offset <<= 1) {
-				gridDim = ((pow2roundedsize >> ilog2(offset<<1)) + blockSize - 1) / blockSize;
+				gridDim = ((pow2roundedsize >> ilog2(offset << 1)) + blockSize - 1) / blockSize;
+				//this fails when blocksize is more than 128
 				kernScanUp<<<gridDim, blockSize>>>(pow2roundedsize, offset << 1, offset, dev_data);
 			}
 
@@ -69,7 +70,7 @@ namespace StreamCompaction {
 			checkCUDAError("cudaMemcpy from zero to dev_data failed!");
 
 			for (int offset = pow2roundedsize >> 1; offset > 0; offset >>= 1) {
-				gridDim = ((pow2roundedsize >> ilog2(offset<<1)) + blockSize - 1) / blockSize;
+				gridDim = ((pow2roundedsize >> ilog2(offset << 1)) + blockSize - 1) / blockSize;
 				kernScanDown<<<gridDim, blockSize>>>(pow2roundedsize, offset << 1, offset, dev_data);
 			}
 			timer().endGpuTimer();

@@ -19,7 +19,7 @@ namespace StreamCompaction {
 			data[index] = 0;
 		}
 
-#define AVOIDBANKCONFLICT 1
+#define AVOIDBANKCONFLICT 0
 		__global__ void kernScan(const int shMemEntries, int* odata, const int* idata, int* SUMS) {
 			extern __shared__ int temp[];
 			const int thid_blk = threadIdx.x;
@@ -103,7 +103,7 @@ namespace StreamCompaction {
 			odata[2*thid_grid+1] += scannedSumForThisBlock;
 		}
 
-		void recursiveScan(const int n, const int level, int *odata, const int *idata) {
+		void recursiveScan(const int n, const int level, int* odata, const int *idata) {
 			//printf("\ncalling recursiveScan with pow2size: %i level: %i\n", n, level);
 
 			//generate params for the kernel
@@ -137,7 +137,7 @@ namespace StreamCompaction {
 				kernAddBack<<<pow2BlocksThisLevel,blockSize>>>(n, odata, scannedSUMS[level]);
 
 			} else {
-				//last level, just call the kernel, the recursive call that we
+				//last level, 1 block to run, just call the kernel, the recursive call that we
 				//are currently in is for the last level of scannedSUMS[]
 				//After this we start popping the recursive stack,
 				//adding the SUMS back up the through the scannedSUMS levels
@@ -153,10 +153,39 @@ namespace StreamCompaction {
 		void scan(const int n, int *odata, const int *idata) {
 			int* dev_idata;
 			int* dev_odata;
+
 			const int pow2roundedsize = 1 << ilog2ceil(n);
 			const int numbytes_pow2roundedsize = pow2roundedsize * sizeof(int);
 			const int numbytes_copy = n * sizeof(int);
 
+			/////////////////////////////////////////
+			//// ALLOC AND COPY TO DEVICE MEMORY ////
+			/////////////////////////////////////////
+			cudaMalloc((void**)&dev_idata, numbytes_pow2roundedsize);
+			checkCUDAError("cudaMalloc dev_data failed!");
+			cudaMalloc((void**)&dev_odata, numbytes_pow2roundedsize);
+			checkCUDAError("cudaMalloc dev_data failed!");
+			cudaMemcpy(dev_idata, idata, numbytes_copy, cudaMemcpyHostToDevice);
+			checkCUDAError("cudaMemcpy from idata to dev_data failed!");
+			//cudaMemcpy(dev_odata, idata, numbytes_copy, cudaMemcpyHostToDevice);
+			//checkCUDAError("cudaMemcpy from idata to dev_data failed!");
+
+			timer().startGpuTimer();
+			StreamCompaction::SharedAndBank::scanNoMalloc(n, dev_odata, dev_idata);
+			timer().endGpuTimer();
+
+			cudaMemcpy(odata, dev_odata, numbytes_copy, cudaMemcpyDeviceToHost);
+			checkCUDAError("cudaMemcpy from dev_odata to odata failed!");
+			cudaFree(dev_odata);
+			checkCUDAError("cudaFree(dev_odata) failed!");
+			cudaFree(dev_idata);
+			checkCUDAError("cudaFree(dev_idata) failed!");
+		}
+
+		void scanNoMalloc(const int n, int* dev_odata, int *dev_idata) {
+			const int pow2roundedsize = 1 << ilog2ceil(n);
+			const int numbytes_pow2roundedsize = pow2roundedsize * sizeof(int);
+			const int numbytes_copy = n * sizeof(int);
 			/////////////////////////////////////////////////////////
 			//// ALLOC scannedSUMS[] NEEDED FOR RECURSION PASSES ////
 			/////////////////////////////////////////////////////////
@@ -187,41 +216,21 @@ namespace StreamCompaction {
 				}
 			}
 
-			/////////////////////////////////////////
-			//// ALLOC AND COPY TO DEVICE MEMORY ////
-			/////////////////////////////////////////
-			cudaMalloc((void**)&dev_idata, numbytes_pow2roundedsize);
-			checkCUDAError("cudaMalloc dev_data failed!");
-			cudaMalloc((void**)&dev_odata, numbytes_pow2roundedsize);
-			checkCUDAError("cudaMalloc dev_data failed!");
-			cudaMemcpy(dev_idata, idata, numbytes_copy, cudaMemcpyHostToDevice);
-			checkCUDAError("cudaMemcpy from idata to dev_data failed!");
-			cudaMemcpy(dev_odata, idata, numbytes_copy, cudaMemcpyHostToDevice);
-			checkCUDAError("cudaMemcpy from idata to dev_data failed!");
-
 			/////////////////////////////
 			//// 0 PAD FOR POW2 SIZE ////
 			/////////////////////////////
 			int gridDim = (pow2roundedsize + blockSize - 1) / blockSize;
 			kernZeroExcessLeaves<<<gridDim, blockSize>>>(pow2roundedsize, n, dev_idata);
-			kernZeroExcessLeaves<<<gridDim, blockSize>>>(pow2roundedsize, n, dev_odata);
+			//kernZeroExcessLeaves<<<gridDim, blockSize>>>(pow2roundedsize, n, dev_odata);
 
 			////////////////////////
 			//// RECURSIVE SCAN ////
 			////////////////////////
-			timer().startGpuTimer();
 			recursiveScan(pow2roundedsize, 0, dev_odata, dev_idata);
-			timer().endGpuTimer();
 
 			///////////////////////
 			//// COPY AND FREE ////
 			///////////////////////
-			cudaMemcpy(odata, dev_odata, numbytes_copy, cudaMemcpyDeviceToHost);
-			checkCUDAError("cudaMemcpy from dev_odata to odata failed!");
-			cudaFree(dev_odata);
-			checkCUDAError("cudaFree(dev_odata) failed!");
-			cudaFree(dev_idata);
-			checkCUDAError("cudaFree(dev_idata) failed!");
 			{//free scannedSUMS related memory
 				for (int i = 0; i < scannedSUMSTotalLevels; ++i) {
 					cudaFree(scannedSUMS[i]);
@@ -232,7 +241,70 @@ namespace StreamCompaction {
 		}
 
 		int compact(const int n, int *odata, const int *idata) {
-			return -1;
+			const int numbytes_copy = n * sizeof(int);
+			const int pow2roundedsize = 1 << ilog2ceil(n);
+			const int numbytes_pow2roundedsize = pow2roundedsize * sizeof(int);
+			int* dev_idata;
+			int* dev_odata;
+			int* dev_bools;
+			int* dev_indices;
+
+
+			cudaMalloc((void**)&dev_idata, numbytes_copy);
+			checkCUDAError("cudaMalloc dev_idata failed!");
+
+			cudaMalloc((void**)&dev_odata, numbytes_copy);
+			checkCUDAError("cudaMalloc dev_odata failed!");
+
+			cudaMalloc((void**)&dev_bools, numbytes_copy);
+			checkCUDAError("cudaMalloc dev_bools failed!");
+
+			cudaMalloc((void**)&dev_indices, numbytes_pow2roundedsize);
+			checkCUDAError("cudaMalloc dev_indices failed!");
+
+			cudaMemcpy(dev_idata, idata, numbytes_copy, cudaMemcpyHostToDevice);
+			checkCUDAError("cudaMemcpy idata to dev_idata failed!");
+
+			const int gridDim = (n + blockSize - 1) / blockSize;
+
+            timer().startGpuTimer();
+
+			StreamCompaction::Common::kernMapToBoolean<<<gridDim, blockSize>>>(n, dev_bools, dev_idata);
+
+			//cudaMemcpy(dev_indices, dev_bools, numbytes_copy, cudaMemcpyDeviceToDevice);
+			//checkCUDAError("cudaMemcpy from to dev_bools to dev_indices failed!");
+
+			StreamCompaction::SharedAndBank::scanNoMalloc(pow2roundedsize, dev_indices, dev_bools);
+
+
+			StreamCompaction::Common::kernScatter<<<gridDim, blockSize>>>(n, dev_odata, dev_idata, dev_bools, dev_indices);
+
+            timer().endGpuTimer();
+			
+			cudaMemcpy(odata, dev_odata, numbytes_copy, cudaMemcpyDeviceToHost);
+			checkCUDAError("cudaMemcpy dev_odata to odata failed!");
+
+			int indicesLAST;
+			cudaMemcpy(&indicesLAST, dev_indices + n - 1, sizeof(int), cudaMemcpyDeviceToHost);
+			checkCUDAError("cudaMemcpy dev_indices to indicesLAST failed!");
+			int boolsLAST;
+			cudaMemcpy(&boolsLAST, dev_bools + n - 1, sizeof(int), cudaMemcpyDeviceToHost);
+			checkCUDAError("cudaMemcpy dev_bools to boolsLAST failed!");
+			const int size = indicesLAST + boolsLAST;
+
+			cudaFree(dev_idata);
+			checkCUDAError("cudaFree of dev_idata failed!");
+
+			cudaFree(dev_odata);
+			checkCUDAError("cudaFree of dev_odata failed!");
+			
+			cudaFree(dev_bools);
+			checkCUDAError("cudaFree of dev_bools failed!");
+
+			cudaFree(dev_indices);
+			checkCUDAError("cudaFree of dev_indices failed!");
+
+			return size;
 		}
 	}
 }
