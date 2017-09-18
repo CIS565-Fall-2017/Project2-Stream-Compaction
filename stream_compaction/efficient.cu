@@ -15,7 +15,7 @@ namespace StreamCompaction {
 
 		__global__ void kernUpSweepIteration(int n, int d, int *idata) {
 			int k = (blockIdx.x * blockDim.x) + threadIdx.x;
-			k = k * (1 << (d + 1)) - 1;
+			k = k * (1 << (d + 1)) + (1 << (d + 1)) - 1;
 			if (k > n || k < 0) { return; }
 
 			int offset = 1 << d + 1;
@@ -30,7 +30,7 @@ namespace StreamCompaction {
 
 		__global__ void kernDownSweepIteration(int n, int d, int *idata) {
 			int k = (blockIdx.x * blockDim.x) + threadIdx.x;
-			k = k * (1 << (d + 1)) - 1;
+			k = k * (1 << (d + 1)) + (1 << (d + 1)) - 1;
 			if (k > n || k < 0) { return; }
 
 			int offset = 1 << d + 1;
@@ -39,8 +39,8 @@ namespace StreamCompaction {
 			int old_val = idata[k];
 			idata[k - (offset / 2)] = replace;
 			idata[k] = add;
-			printf("d = %i, %i off %i %i oldval: %i val: %i\n", d, k, offset, offset / 2, old_val, idata[k]);
-
+			//printf("d = %i, %i off %i %i oldval: %i val: %i\n", d, k, offset, offset / 2, old_val, idata[k]);
+			
 
 		}
 
@@ -52,7 +52,7 @@ namespace StreamCompaction {
          * Performs prefix-sum (aka scan) on idata, storing the result into odata.
          */
         void scan(int n, int *odata, const int *idata) {
-            timer().startGpuTimer();
+            //timer().startGpuTimer();
 			dim3 threadsPerBlock(128);
 			int blockSize = 128;
 			
@@ -63,7 +63,7 @@ namespace StreamCompaction {
 			if ((n & (n - 1)) != 0) {
 				arr_size = 1 << log;
 			}
-			printf("n: %i arr_size: %i \n", n, arr_size);
+			
 			int* dev_odata;
 			cudaMalloc((void**)&dev_odata, arr_size * sizeof(int));
 			checkCUDAErrorWithLine("cudaMalloc dev_odata failed!");
@@ -78,7 +78,6 @@ namespace StreamCompaction {
 			log = ilog2ceil(arr_size);
 			for (int d = 0; d < log; d++) {
 				int off_n = arr_size / (1 << (d + 1));
-				printf("num %i \n", off_n);
 				dim3 fullBlocksPerGrid((off_n + blockSize - 1) / blockSize);
 				kernUpSweepIteration << <fullBlocksPerGrid, blockSize >> > (arr_size, d, dev_odata);
 			}
@@ -91,10 +90,28 @@ namespace StreamCompaction {
 			}
 			cudaMemcpy(odata, dev_odata, sizeof(int) * n, cudaMemcpyDeviceToHost);
 			checkCUDAErrorWithLine("memcpy failed!");
-            timer().endGpuTimer();
+            //timer().endGpuTimer();
 			cudaFree(dev_odata);
 			cudaFree(dev_shiftdata);
         }
+
+		__global__ void kernMapToBoolean(int n, int *idata) {
+			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
+			if (index > n) { return; }
+			int data = idata[index];
+			if (data != 0) {
+				idata[index] = 1;
+			}
+		}
+		__global__ void kernScatter(int n, int *odata, int *idata, int *scanOutData, int *boolOutData) {
+			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
+			if (index > n) { return; }
+			int boolIndex = boolOutData[index];
+			if (boolIndex != 0) {
+				odata[scanOutData[index]] = idata[index];
+			}
+		}
+
 
         /**
          * Performs stream compaction on idata, storing the result into odata.
@@ -106,10 +123,54 @@ namespace StreamCompaction {
          * @returns      The number of elements remaining after compaction.
          */
         int compact(int n, int *odata, const int *idata) {
-            timer().startGpuTimer();
+
+			timer().startGpuTimer();
+			int blockSize = 128;
+			dim3 threadsPerBlock(blockSize);
+
+			int* dev_idata;
+			cudaMalloc((void**)&dev_idata, n * sizeof(int));
+			checkCUDAErrorWithLine("cudaMalloc dev_odata failed!");
+			cudaMemcpy(dev_idata, idata, sizeof(int) * n, cudaMemcpyHostToDevice);
+			checkCUDAErrorWithLine("memcpy failed!");
+			int* dev_boolData;
+			cudaMalloc((void**)&dev_boolData, n * sizeof(int));
+			checkCUDAErrorWithLine("cudaMalloc dev_odata failed!");
+			cudaMemcpy(dev_boolData, idata, sizeof(int) * n, cudaMemcpyHostToDevice);
+			checkCUDAErrorWithLine("memcpy failed!");
+			int* dev_scanData;
+			cudaMalloc((void**)&dev_scanData, n * sizeof(int));
+			checkCUDAErrorWithLine("cudaMalloc dev_odata failed!");
+			int* dev_odata;
+			cudaMalloc((void**)&dev_odata, n * sizeof(int));
+			checkCUDAErrorWithLine("cudaMalloc dev_odata failed!");
+
+			dim3 fullBlocksPerGrid((n + blockSize - 1) / blockSize);
+			kernMapToBoolean << <fullBlocksPerGrid, blockSize >> > (n, dev_boolData);
+
+			int *boolOutData = new int[n];
+			cudaMemcpy(boolOutData, dev_boolData, sizeof(int) * n, cudaMemcpyDeviceToHost);
+			checkCUDAErrorWithLine("memcpy failed!");
+
+			/*for (int i = 0; i < 10; i++) {
+				printf("%i %i\n", i, boolOutData[i]);
+			}*/
+
+			int *scanOutData = new int[n];
+			scan(n,scanOutData ,boolOutData);
+			int compact_size = scanOutData[n-1] + boolOutData[n-1];
+			cudaMemcpy(dev_scanData, scanOutData, sizeof(int) * n, cudaMemcpyHostToDevice);
+			checkCUDAErrorWithLine("memcpy failed!");
+			kernScatter << <fullBlocksPerGrid, blockSize >> > (n,dev_odata, dev_idata, dev_scanData, dev_boolData);
+			cudaMemcpy(odata, dev_odata, sizeof(int) * n, cudaMemcpyDeviceToHost);
+			checkCUDAErrorWithLine("memcpy failed!");
             // TODO
             timer().endGpuTimer();
-            return -1;
+			cudaFree(dev_idata);
+			cudaFree(dev_odata);
+			cudaFree(dev_boolData);
+			cudaFree(dev_scanData);
+            return compact_size;
         }
     }
 }
