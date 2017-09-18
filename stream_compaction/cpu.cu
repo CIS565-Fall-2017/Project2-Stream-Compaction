@@ -93,12 +93,46 @@ namespace StreamCompaction {
             return num;
         }
 
+        int findMax(int n, const int *idata) 
+        {
+        	int max = idata[0];
+        	for (int i = 1; i < n; ++i) {
+        		int val = idata[i];
+        		if (val > max) {
+        			max = val;
+        		}
+        	}
+        }
+
+        void countSort(int n, int d, int *odata, int *idata)
+        {
+        	int count[10] = {0};
+
+        	for (int i = 0; i < n; ++i) {
+        		count[(idata[i]/d)%10] ++;
+        	}
+
+        	for (int i = 1; i < 10; ++i) {
+        		count[i] += count[i - 1];
+        	}
+
+        	for (int i = n - 1; i >= 0; --i) {
+        		odata[ count[(idata[i]/d)%10] - 1] = idata[i];
+        		count[(idata[i]/d)%10] --;
+        	}
+        }
+
         /**
          * CPU sort
          */
         void sort_implementation(int n, int *odata, const int *idata)
 		{
 	        // TODO
+	        int max = findMax(n, idata);
+	        for (int d = 1; max/d > 0; d *= 10) {
+	        	countSort(n, d, odata, idata);
+	        	std::swap(idata, odata);
+	        }
         }
 
 		/**
