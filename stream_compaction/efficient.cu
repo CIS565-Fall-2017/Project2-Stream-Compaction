@@ -52,7 +52,7 @@ namespace StreamCompaction {
          * Performs prefix-sum (aka scan) on idata, storing the result into odata.
          */
         void scan(int n, int *odata, const int *idata) {
-            //timer().startGpuTimer();
+            timer().startGpuTimer();
 			dim3 threadsPerBlock(128);
 			int blockSize = 128;
 			
@@ -90,7 +90,7 @@ namespace StreamCompaction {
 			}
 			cudaMemcpy(odata, dev_odata, sizeof(int) * n, cudaMemcpyDeviceToHost);
 			checkCUDAErrorWithLine("memcpy failed!");
-            //timer().endGpuTimer();
+            timer().endGpuTimer();
 			cudaFree(dev_odata);
 			cudaFree(dev_shiftdata);
         }
@@ -124,7 +124,6 @@ namespace StreamCompaction {
          */
         int compact(int n, int *odata, const int *idata) {
 
-			timer().startGpuTimer();
 			int blockSize = 128;
 			dim3 threadsPerBlock(blockSize);
 
@@ -145,6 +144,8 @@ namespace StreamCompaction {
 			cudaMalloc((void**)&dev_odata, n * sizeof(int));
 			checkCUDAErrorWithLine("cudaMalloc dev_odata failed!");
 
+			//timer().startGpuTimer();
+
 			dim3 fullBlocksPerGrid((n + blockSize - 1) / blockSize);
 			kernMapToBoolean << <fullBlocksPerGrid, blockSize >> > (n, dev_boolData);
 
@@ -164,8 +165,7 @@ namespace StreamCompaction {
 			kernScatter << <fullBlocksPerGrid, blockSize >> > (n,dev_odata, dev_idata, dev_scanData, dev_boolData);
 			cudaMemcpy(odata, dev_odata, sizeof(int) * n, cudaMemcpyDeviceToHost);
 			checkCUDAErrorWithLine("memcpy failed!");
-            // TODO
-            timer().endGpuTimer();
+            //timer().endGpuTimer();
 			cudaFree(dev_idata);
 			cudaFree(dev_odata);
 			cudaFree(dev_boolData);
