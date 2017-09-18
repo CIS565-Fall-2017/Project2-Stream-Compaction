@@ -79,7 +79,7 @@ namespace StreamCompaction {
 
 			if ((index%step2 == 0) || (index == 0))
 			{
-				if (((index + step2 - 1) > n - 1) && ((index + step1 - 1) > n - 1)) 
+				if ( (index + step1 - 1) > n - 1) 
 				{
 					int extraIndex2 = index + step2 - 1 - n;
 					int extraIndex1 = index + step1 - 1 - n;
@@ -209,7 +209,7 @@ namespace StreamCompaction {
 			}
 		}
 
-		__global__ void ODataInitialize(int n, int*odata)
+		__global__ void DataInitialize(int n, int*odata)
 		{
 			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
 			if ((index >= n) || (index < 0))
@@ -251,14 +251,16 @@ namespace StreamCompaction {
 			
 			cudaMalloc((void**)&dev_odata, memoryCopySize);
 			checkCUDAError("cudaMalloc dev_odata failed!");
+			cudaMemcpy(dev_odata, odata, memoryCopySize, cudaMemcpyHostToDevice);
+			checkCUDAError("cudaMemcpy dev_odata failed!");
 			
 			cudaMalloc((void**)&dev_idata, memoryCopySize);
 			checkCUDAError("cudaMalloc dev_idata failed!");
 			cudaMemcpy(dev_idata, idata, memoryCopySize, cudaMemcpyHostToDevice);
 			checkCUDAError("cudaMemcpy dev_idata failed!");
 
-			ODataInitialize << <fullBlocksPerGrid, blockSize >> >(n, dev_odata);
-			cudaDeviceSynchronize();
+			//DataInitialize << <fullBlocksPerGrid, blockSize >> >(n, mappedData);
+			//cudaDeviceSynchronize();
 
 			EfficientMappingAlgorithm << <fullBlocksPerGrid, blockSize >> > (n, dev_idata, mappedData);
 			cudaDeviceSynchronize();
@@ -274,10 +276,12 @@ namespace StreamCompaction {
 				cudaThreadSynchronize();
 			}
 
+			cudaDeviceSynchronize();
+
 			if (pow(2, ilog2ceil(n)) == n)
 			{
-				AssignInitial << <fullBlocksPerGrid, blockSize >> > (scannedDataIn, n);
-				cudaThreadSynchronize();
+				AssignInitial << <fullBlocksPerGrid, blockSize >> >(scannedDataIn, n);
+				cudaDeviceSynchronize();
 
 				for (int d = (ilog2ceil(n) - 1);d >= 0;d--)
 				{
@@ -287,20 +291,6 @@ namespace StreamCompaction {
 					cudaThreadSynchronize();
 				}
 
-				EfficientCompactAlgorithm << <fullBlocksPerGrid, blockSize >> > (n, dev_idata, dev_odata, mappedData, scannedDataIn);
-				cudaThreadSynchronize();
-
-				cudaMemcpy(odata, dev_odata, memoryCopySize, cudaMemcpyDeviceToHost);
-
-				int value = odata[count];
-
-				while (value != -1)
-				{
-					count++;
-					value = odata[count];
-				}
-
-
 			}
 			//the non-power-of-two cases
 			else
@@ -308,9 +298,11 @@ namespace StreamCompaction {
 				int numberToAdd = pow(2, ilog2ceil(n)) - n;
 				int* extraArray;
 				cudaMalloc((void**)&extraArray, numberToAdd * sizeof(int));
+				dim3 extraBlocksPerGrid((numberToAdd + blockSize - 1) / blockSize);
 
-				AssignExtra << <fullBlocksPerGrid, blockSize >> >(numberToAdd, extraArray);
+				AssignExtra << <extraBlocksPerGrid, blockSize >> >(numberToAdd, extraArray);
 				cudaDeviceSynchronize();
+
 				for (int d = (ilog2ceil(n) - 1);d >= 0;d--)
 				{
 					step1 = pow(2, d);
@@ -320,23 +312,19 @@ namespace StreamCompaction {
 				}
 
 				cudaFree(extraArray);
-
-
-				EfficientCompactAlgorithm << <fullBlocksPerGrid, blockSize >> > (n, dev_idata, dev_odata, mappedData, scannedDataIn);
-				cudaThreadSynchronize();
-
-				cudaMemcpy(odata, dev_odata, memoryCopySize, cudaMemcpyDeviceToHost);
-
-				int value = odata[count];
-
-				while (value != -1)
-				{
-					count++;
-					value = odata[count];
-				}
-
 			}
 
+			cudaDeviceSynchronize();
+
+			EfficientCompactAlgorithm << <fullBlocksPerGrid, blockSize >> > (n, dev_idata, dev_odata, mappedData, scannedDataIn);
+			cudaDeviceSynchronize();
+
+			cudaMemcpy(odata, dev_odata, memoryCopySize, cudaMemcpyDeviceToHost);
+
+			while (odata[count]!=0)
+			{
+				count++;
+			}
 			
 			cudaFree(scannedDataIn);
 			cudaFree(dev_idata);

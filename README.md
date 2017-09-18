@@ -61,6 +61,8 @@ Naive non-power-of-two: 1.6399 ms
 
 # 3. Work Efficient GPU Scan & Stream Compaction #
 
+***Notice: In this part, I did not use the kernels in Common.cu, where I stated my own kernels in Efficient.cu.***
+
 ## Results ##
 
 **Scan Tests:**
@@ -93,7 +95,7 @@ This array would be initial set to be a zeros array. And if index + pow(2,d+1) e
 
     if ((index%pow(2,d+1) == 0) OR (index == 0))
 			{
-				if (((index + pow(2,d+1) - 1) > n - 1) AND ((index + pow(2,d) - 1) > n - 1)) 
+				if ((index + pow(2,d) - 1) > n - 1)
 				{
 					int extraIndex2 = index + pow(2,d+1) - 1 - n;
 					int extraIndex1 = index + pow(2,d) - 1 - n;

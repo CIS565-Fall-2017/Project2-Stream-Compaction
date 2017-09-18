@@ -38,7 +38,7 @@ namespace StreamCompaction {
 	        timer().startCpuTimer();
             // TODO
 			int countOut = 0;
-			for (int tempCount = 0; tempCount <n - 1; tempCount++)
+			for (int tempCount = 0; tempCount <n; tempCount++)
 			{
 				if (idata[tempCount] != 0)
 				{
