@@ -7,13 +7,14 @@
  */
 
 #include <cstdio>
+#include <iostream>
 #include <stream_compaction/cpu.h>
 #include <stream_compaction/naive.h>
 #include <stream_compaction/efficient.h>
 #include <stream_compaction/thrust.h>
 #include "testing_helpers.hpp"
 
-const int SIZE = 1 << 10; // feel free to change the size of array
+const long SIZE = 1 << 20; // feel free to change the size of array //max size is 1<<22
 const int NPOT = SIZE - 3; // Non-Power-Of-Two
 int a[SIZE], b[SIZE], c[SIZE];
 
@@ -25,9 +26,16 @@ int main(int argc, char* argv[]) {
     printf("** SCAN TESTS **\n");
     printf("****************\n");
 
+	std::cout << "\nArray Sizes" << "\n";
+	std::cout << "Power of 2 size:       " << SIZE << "\n";
+	std::cout << "Non-Power of 2 size:   " << NPOT << "\n\n";
+
     genArray(SIZE - 1, a, 50);  // Leave a 0 at the end to test that edge case
     a[SIZE - 1] = 0;
+
+	printf("** Original Array **\n");
     printArray(SIZE, a, true);
+	printf("\n");
 
     // initialize b using StreamCompaction::CPU::scan you implement
     // We use b for further comparison. Make sure your StreamCompaction::CPU::scan is correct.
@@ -80,7 +88,7 @@ int main(int argc, char* argv[]) {
     //printArray(SIZE, c, true);
     printCmpResult(SIZE, b, c);
 
-    zeroArray(SIZE, c);
+	zeroArray(SIZE, c);
     printDesc("thrust scan, non-power-of-two");
     StreamCompaction::Thrust::scan(NPOT, c, a);
     printElapsedTime(StreamCompaction::Thrust::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
@@ -90,13 +98,16 @@ int main(int argc, char* argv[]) {
     printf("\n");
     printf("*****************************\n");
     printf("** STREAM COMPACTION TESTS **\n");
-    printf("*****************************\n");
+    printf("*****************************\n\n");
 
     // Compaction tests
 
     genArray(SIZE - 1, a, 4);  // Leave a 0 at the end to test that edge case
     a[SIZE - 1] = 0;
+
+	printf("** Original Array **\n");
     printArray(SIZE, a, true);
+	printf("\n");
 
     int count, expectedCount, expectedNPOT;
 
