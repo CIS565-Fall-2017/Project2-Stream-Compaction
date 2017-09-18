@@ -16,14 +16,6 @@ namespace StreamCompaction {
 #define checkCUDAErrorWithLine(msg) checkCUDAError(msg, __LINE__)
 #define USE_CUDA_DEV_SYNC 0
 
-        // TODO: __global__
-        __global__ void map(int n, int *odata, const int *idata) {
-          int idx = (blockIdx.x * blockDim.x) + threadIdx.x; // TODO?
-          if (idx < n) {
-            odata[idx] = (idata[idx] != 0) ? 1 : 0;
-          }
-        }
-
         __global__ void shiftRight(int n, int *odata, const int *idata) {
           int idx = (blockIdx.x * blockDim.x) + threadIdx.x;; // TODO?
           if (idx < n) {
