@@ -19,7 +19,7 @@ namespace StreamCompaction {
 			data[index] = 0;
 		}
 
-#define AVOIDBANKCONFLICT 0
+#define AVOIDBANKCONFLICT 1
 		__global__ void kernScan(const int shMemEntries, int* odata, const int* idata, int* SUMS) {
 			extern __shared__ int temp[];
 			const int thid_blk = threadIdx.x;
