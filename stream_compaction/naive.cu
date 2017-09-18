@@ -55,7 +55,7 @@ namespace StreamCompaction {
 		void scan(int n, int *odata, const int *idata) {
 
 			//Version 1
-			/*
+			
 			int *dev_idata_0;
 			int *dev_idata_1;
 
@@ -67,20 +67,19 @@ namespace StreamCompaction {
 
 			int level = ilog2ceil(n);
 			int blockSize = pow(2, level);
+			blockSize = std::min(blockSize, 1024);
 			dim3 fullBlocksPerGrid((n + blockSize - 1) / blockSize);
 
 			bool bUse0 = true;
 
-			timer().startGpuTimer();
-
 			// TODO
 			for (int d = 1; d <= level; d++)
 			{
+				timer().startGpuTimer();
 				kernNaiveParallelScan << < fullBlocksPerGrid, blockSize >> > (n, pow(2, d - 1), bUse0 ? dev_idata_1 : dev_idata_0, bUse0 ? dev_idata_0 : dev_idata_1);
 				bUse0 = !bUse0;
+				timer().endGpuTimer();
 			}
-
-			timer().endGpuTimer();
 
 			//Inclusive to Exclusive
 			
@@ -90,9 +89,10 @@ namespace StreamCompaction {
 			
 			cudaFree(dev_idata_0);
 			cudaFree(dev_idata_1);	
-			*/
+			
 
 			//Version 2
+			/*
 			int *g_idata;
 			int *g_odata;
 
@@ -118,91 +118,8 @@ namespace StreamCompaction {
 
 			cudaFree(g_idata);
 			cudaFree(g_odata);
-		}
-
-		__global__ void kernRadixScan(int *g_idata, int n, int digit)
-		{
-			extern __shared__ int temp[];
-			int thid = threadIdx.x;			
-
-			//i array 0 ~ n
-			temp[thid] = g_idata[thid];
-
-			__syncthreads();
-
-			//e array n ~ 2n			
-			temp[n + thid] = (temp[thid] >> digit & 0x01) ? 0 : 1;
-			
-			__syncthreads();
-
-			//Exclusive Scan e
-			//f array    2n ~ 3n			
-
-			int index = 2 * thid;
-
-			temp[2*n + index] = temp[n + index]; 
-			temp[2*n + index + 1] = temp[n + index + 1];
-
-
-			int offset = 1;
-
-			//Up-Sweep (Parallel Reduction)
-			for (int d = n >> 1; d > 0; d >>= 1)
-			{
-				__syncthreads();
-				if (thid < d)
-				{
-					int ai = offset*(index + 1) - 1;
-					int bi = offset*(index + 2) - 1;
-
-
-					temp[2 * n + bi] += temp[2 * n + ai];
-				}
-				offset *= 2;
-			}
-
-
-			//temp[n - 1] = 0;
-			// clear the last element
-			if (thid == 0)
-			{
-				temp[2 * n + n - 1] = 0;
-			}
-
-
-			//Down-Sweep
-			for (int d = 1; d < n; d *= 2)
-			{
-				offset >>= 1;
-				__syncthreads();
-				if (thid < d)
-				{
-
-					int ai = offset*(index + 1) - 1;
-					int bi = offset*(index + 2) - 1;
-
-
-					int t = temp[2 * n + ai];
-					temp[2 * n + ai] = temp[2 * n + bi];
-					temp[2 * n + bi] += t;
-				}
-			}
-			__syncthreads();
-			
-			int totalFalses = temp[2 * n - 1] + temp[2 * n + n -1];
-
-			//t array 3n ~ 4n
-			temp[3 * n + thid] = thid - temp[2 * n + thid] + totalFalses;
-
-			__syncthreads();
-
-			//d array 4n ~ 5n
-			temp[4 * n + thid] = temp[n + thid]  ? temp[2 * n + thid] : temp[3 * n + thid];
-			__syncthreads();
-
-			g_idata[temp[4 * n + thid]] = temp[thid];
-
-		}
+			*/
+		}		
 
 		void sortArray(int n, int *b, int *a)
 		{
@@ -221,33 +138,6 @@ namespace StreamCompaction {
 			{
 				b[i] = arr[i];
 			}
-		}
-
-		void radixScan(int n, int *odata, const int *idata)
-		{
-			int *g_idata;
-
-			cudaMalloc((void**)&g_idata, n * sizeof(int));
-			cudaMemcpy(g_idata, idata, sizeof(int) * n, cudaMemcpyHostToDevice);
-
-			int level = ilog2ceil(n);
-			int blockSize = pow(2, level);
-			blockSize = std::min(blockSize, 1024);
-
-			dim3 fullBlocksPerGrid((n + blockSize - 1) / blockSize);
-
-			timer().startGpuTimer();
-
-			for (int i = 0; i < level; i++)
-			{
-				kernRadixScan <<< fullBlocksPerGrid, blockSize, 5 * n * sizeof(int) >> > (g_idata, n, i);
-			}
-
-			timer().endGpuTimer();
-
-			cudaMemcpy(odata, g_idata, n * sizeof(int), cudaMemcpyDeviceToHost);
-
-			cudaFree(g_idata);
-		}
+		}		
 	}
 }

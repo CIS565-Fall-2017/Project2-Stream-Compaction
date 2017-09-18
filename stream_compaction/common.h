@@ -50,24 +50,12 @@ namespace StreamCompaction {
 		    {
 			    cudaEventCreate(&event_start);				
 			    cudaEventCreate(&event_end);
-
-				cudaEventCreate(&event_start2);
-				cudaEventCreate(&event_end2);
-
-				cudaEventCreate(&event_pause_start);
-				cudaEventCreate(&event_pause_end);
 		    }
 
 		    ~PerformanceTimer()
 		    {
 			    cudaEventDestroy(event_start);				
 			    cudaEventDestroy(event_end);
-
-				cudaEventDestroy(event_start2);
-				cudaEventDestroy(event_end2);
-
-				cudaEventDestroy(event_pause_start);
-				cudaEventDestroy(event_pause_end);
 		    }
 
 		    void startCpuTimer()
@@ -88,24 +76,10 @@ namespace StreamCompaction {
 			    prev_elapsed_time_cpu_milliseconds =
 				    static_cast<decltype(prev_elapsed_time_cpu_milliseconds)>(duro.count());
 
+				prev_return_time_cpu_milliseconds += prev_elapsed_time_cpu_milliseconds;
+
 			    cpu_timer_started = false;
 		    }
-
-			void pauseTimer()
-			{
-				timer_pause = !timer_pause;
-
-				if (timer_pause)
-					time_pause_start_cpu = std::chrono::high_resolution_clock::now();
-				else
-				{
-					time_pause_end_cpu = std::chrono::high_resolution_clock::now();
-
-					std::chrono::duration<double, std::milli> duro = time_pause_end_cpu - time_pause_start_cpu;
-					prev_elapsed_time_paused_milliseconds = static_cast<decltype(prev_elapsed_time_paused_milliseconds)>(duro.count());
-				}
-
-			}
 
 		    void startGpuTimer()
 		    {
@@ -123,42 +97,25 @@ namespace StreamCompaction {
 			    if (!gpu_timer_started) { throw std::runtime_error("GPU timer not started"); }
 
 			    cudaEventElapsedTime(&prev_elapsed_time_gpu_milliseconds, event_start, event_end);
+				prev_return_time_gpu_milliseconds += prev_elapsed_time_gpu_milliseconds;
 			    gpu_timer_started = false;
-		    }
-
-			void startGpuTimer2()
-			{
-				if (gpu_timer_started2) { throw std::runtime_error("GPU timer2 already started"); }
-				gpu_timer_started2 = true;
-
-				cudaEventRecord(event_start2);
-			}
-
-			void endGpuTimer2()
-			{
-				cudaEventRecord(event_end2);
-				cudaEventSynchronize(event_end2);
-
-				if (!gpu_timer_started2) { throw std::runtime_error("GPU timer2 not started"); }
-
-				cudaEventElapsedTime(&prev_elapsed_time_gpu2_milliseconds, event_start2, event_end2);
-				gpu_timer_started2 = false;
-			}
+		    }			
 
 		    float getCpuElapsedTimeForPreviousOperation() //noexcept //(damn I need VS 2015
 		    {
-			    return prev_elapsed_time_cpu_milliseconds;
+			    //return prev_elapsed_time_cpu_milliseconds;
+				return_time_cpu_milliseconds = prev_return_time_cpu_milliseconds;
+				prev_return_time_cpu_milliseconds = 0.f;
+				return return_time_cpu_milliseconds;
 		    }
 
 		    float getGpuElapsedTimeForPreviousOperation() //noexcept
 		    {
-			    return prev_elapsed_time_gpu_milliseconds;
+			    //return prev_elapsed_time_gpu_milliseconds;
+				return_time_gpu_milliseconds = prev_return_time_gpu_milliseconds;
+				prev_return_time_gpu_milliseconds = 0.f;
+				return return_time_gpu_milliseconds;
 		    }
-
-			float getGpu2ElapsedTimeForPreviousOperation() //noexcept
-			{
-				return prev_elapsed_time_gpu2_milliseconds;
-			}
 
 		    // remove copy and move functions
 		    PerformanceTimer(const PerformanceTimer&) = delete;
@@ -168,13 +125,7 @@ namespace StreamCompaction {
 
 	    private:
 		    cudaEvent_t event_start = nullptr;
-		    cudaEvent_t event_end = nullptr;
-
-			cudaEvent_t event_start2 = nullptr;
-			cudaEvent_t event_end2 = nullptr;
-
-			cudaEvent_t event_pause_start = nullptr;
-			cudaEvent_t event_pause_end = nullptr;
+		    cudaEvent_t event_end = nullptr;		
 
 		    using time_point_t = std::chrono::high_resolution_clock::time_point;
 		    time_point_t time_start_cpu;
@@ -185,15 +136,15 @@ namespace StreamCompaction {
 
 		    bool cpu_timer_started = false;
 		    bool gpu_timer_started = false;
-			bool gpu_timer_started2 = false;
-
-			bool timer_pause = false;
 
 		    float prev_elapsed_time_cpu_milliseconds = 0.f;
 		    float prev_elapsed_time_gpu_milliseconds = 0.f;
-			float prev_elapsed_time_gpu2_milliseconds = 0.f;
 
-			float prev_elapsed_time_paused_milliseconds = 0.f;
+			float prev_return_time_cpu_milliseconds = 0.f;
+			float prev_return_time_gpu_milliseconds = 0.f;
+
+			float return_time_cpu_milliseconds = 0.f;
+			float return_time_gpu_milliseconds = 0.f;
 	    };
     }
 }
