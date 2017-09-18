@@ -11,6 +11,7 @@
 #include <stream_compaction/naive.h>
 #include <stream_compaction/efficient.h>
 #include <stream_compaction/thrust.h>
+#include <stream_compaction/RadixSort.h>
 #include "testing_helpers.hpp"
 
 const int SIZE = 1 << 8; // feel free to change the size of array
@@ -144,16 +145,31 @@ int main(int argc, char* argv[]) {
 	printf("*****************************\n");
 	printf("** Radix Sort TEST **\n");
 	printf("*****************************\n");
-	genArray(15, a, 16);
+
+	int numberCount = SIZE; // should smaller than SIZE (256 here)
+
+	// These two values must be compatible
+	int maxValue = 16;
+	int maxBits = 4;
+
+	genArray(numberCount, a, maxValue);
 	printf("Randomly Generate Array with maxmium 16.\n");
-	printArray(15, a, true);
+	printArray(numberCount, a, true);
 
-	zeroArray(15, b);
-	StreamCompaction::CPU::quickSort(15, b, a);
-	printElapsedTime(StreamCompaction::CPU::timer().getCpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
+	zeroArray(numberCount, b);
+	StreamCompaction::CPU::quickSort(numberCount, b, a);
 	printf("qosrt Result : \n");
-	printArray(15, b, true);
+	printArray(numberCount, b, true);
+	printElapsedTime(StreamCompaction::CPU::timer().getCpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
 
+	zeroArray(numberCount, c);
+	RadixSort::sort(numberCount, maxBits, c, a);
+	printf("Radix sort Result : \n");
+	printArray(numberCount, c, true);
+	printElapsedTime(RadixSort::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
+
+	printf("sort result comparison between qsort and radix sort : \n");
+	printCmpLenResult(numberCount, numberCount, b, c);
 
     system("pause"); // stop Win32 console from closing on exit
 }
