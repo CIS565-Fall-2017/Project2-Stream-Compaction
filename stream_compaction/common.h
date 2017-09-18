@@ -48,13 +48,13 @@ namespace StreamCompaction {
 	    public:
 		    PerformanceTimer()
 		    {
-			    cudaEventCreate(&event_start);
+			    cudaEventCreate(&event_start);				
 			    cudaEventCreate(&event_end);
 		    }
 
 		    ~PerformanceTimer()
 		    {
-			    cudaEventDestroy(event_start);
+			    cudaEventDestroy(event_start);				
 			    cudaEventDestroy(event_end);
 		    }
 
@@ -76,6 +76,8 @@ namespace StreamCompaction {
 			    prev_elapsed_time_cpu_milliseconds =
 				    static_cast<decltype(prev_elapsed_time_cpu_milliseconds)>(duro.count());
 
+				prev_return_time_cpu_milliseconds += prev_elapsed_time_cpu_milliseconds;
+
 			    cpu_timer_started = false;
 		    }
 
@@ -95,17 +97,24 @@ namespace StreamCompaction {
 			    if (!gpu_timer_started) { throw std::runtime_error("GPU timer not started"); }
 
 			    cudaEventElapsedTime(&prev_elapsed_time_gpu_milliseconds, event_start, event_end);
+				prev_return_time_gpu_milliseconds += prev_elapsed_time_gpu_milliseconds;
 			    gpu_timer_started = false;
-		    }
+		    }			
 
 		    float getCpuElapsedTimeForPreviousOperation() //noexcept //(damn I need VS 2015
 		    {
-			    return prev_elapsed_time_cpu_milliseconds;
+			    //return prev_elapsed_time_cpu_milliseconds;
+				return_time_cpu_milliseconds = prev_return_time_cpu_milliseconds;
+				prev_return_time_cpu_milliseconds = 0.f;
+				return return_time_cpu_milliseconds;
 		    }
 
 		    float getGpuElapsedTimeForPreviousOperation() //noexcept
 		    {
-			    return prev_elapsed_time_gpu_milliseconds;
+			    //return prev_elapsed_time_gpu_milliseconds;
+				return_time_gpu_milliseconds = prev_return_time_gpu_milliseconds;
+				prev_return_time_gpu_milliseconds = 0.f;
+				return return_time_gpu_milliseconds;
 		    }
 
 		    // remove copy and move functions
@@ -116,17 +125,26 @@ namespace StreamCompaction {
 
 	    private:
 		    cudaEvent_t event_start = nullptr;
-		    cudaEvent_t event_end = nullptr;
+		    cudaEvent_t event_end = nullptr;		
 
 		    using time_point_t = std::chrono::high_resolution_clock::time_point;
 		    time_point_t time_start_cpu;
 		    time_point_t time_end_cpu;
+
+			time_point_t time_pause_start_cpu;
+			time_point_t time_pause_end_cpu;
 
 		    bool cpu_timer_started = false;
 		    bool gpu_timer_started = false;
 
 		    float prev_elapsed_time_cpu_milliseconds = 0.f;
 		    float prev_elapsed_time_gpu_milliseconds = 0.f;
+
+			float prev_return_time_cpu_milliseconds = 0.f;
+			float prev_return_time_gpu_milliseconds = 0.f;
+
+			float return_time_cpu_milliseconds = 0.f;
+			float return_time_gpu_milliseconds = 0.f;
 	    };
     }
 }
