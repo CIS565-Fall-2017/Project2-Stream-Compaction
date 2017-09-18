@@ -14,7 +14,8 @@ namespace StreamCompaction {
 
 #define blockSize 32
 #define MAX_BLOCK_SIZE 32
-#define checkCUDAErrorWithLine(msg) checkCUDAError(msg, __LINE__)
+#define checkCUDAErrorWithLine(msg) ((void)0) 
+        //checkCUDAError(msg, __LINE__)
 #define USE_CUDA_DEV_SYNC 0
 
         __global__ void upSweepIteration(int n, int *odata, const int offset, const int halfOffset) {
@@ -46,6 +47,7 @@ namespace StreamCompaction {
          * device memory and does not use gpuTimer.
          */
         void scan(int n, int *odata, const int *idata, bool internalUse) {
+          // TODO: handle n <= 2 ???
           // nearest power of two
           const int bufSize = 1 << ilog2ceil(n);
           
@@ -66,22 +68,29 @@ namespace StreamCompaction {
             checkCUDAErrorWithLine("memcpy dev_buf error!!!");
           }
 
-          if (!internalUse) {
-            timer().startGpuTimer();
-          }
+
 
           int halfOffset = 1;
           int numThreads = bufSize / 2;
-          dim3 numBlocks;
+          dim3 numBlocks(1);
           int threadsPerBlock;
+
+          cudaDeviceSynchronize();
+          checkCUDAErrorWithLine("cuda sync error!!!");
+
+          if (!internalUse) {
+            timer().startGpuTimer();
+          }
           // skip offset = n because we overwrite root's value anyway
           for (int offset = 2; offset < bufSize; offset *= 2) {
             if (numThreads > MAX_BLOCK_SIZE) {
-              numBlocks = dim3(numThreads / MAX_BLOCK_SIZE);
+              numBlocks.x = numThreads / MAX_BLOCK_SIZE;
+              //numBlocks = dim3(numThreads / MAX_BLOCK_SIZE);
               threadsPerBlock = MAX_BLOCK_SIZE;
             }
             else {
-              numBlocks = dim3(1);
+              numBlocks.x = 1;
+              //numBlocks = dim3(1);
               threadsPerBlock = numThreads;
             }
             upSweepIteration<<<numBlocks, threadsPerBlock>>>(bufSize, dev_buf, offset, halfOffset);
@@ -96,11 +105,13 @@ namespace StreamCompaction {
           numThreads = 1;
           for (int halfOffset = bufSize / 2; halfOffset >= 1; halfOffset /= 2) {
             if (numThreads > MAX_BLOCK_SIZE) {
-              numBlocks = dim3(numThreads / MAX_BLOCK_SIZE);
+              numBlocks.x = numThreads / MAX_BLOCK_SIZE;
+              //numBlocks = dim3(numThreads / MAX_BLOCK_SIZE);
               threadsPerBlock = MAX_BLOCK_SIZE;
             }
             else {
-              numBlocks = dim3(1);
+              numBlocks.x = 1;
+              //numBlocks = dim3(1);
               threadsPerBlock = numThreads;
             }
             downSweepIteration << <numBlocks, threadsPerBlock >> >(bufSize, dev_buf, offset, halfOffset);
@@ -135,7 +146,6 @@ namespace StreamCompaction {
 
         __global__ void getCompactedSize(int n, int *odata, const int *postMapData, const int *postScanData) {
           *odata = postScanData[n - 1] + (postMapData[n - 1] ? 1 : 0);
-          printf("size: %d\n", *odata);
         }
 
         /**

@@ -35,8 +35,9 @@ namespace StreamCompaction {
           thrust::device_ptr<int> dev_thrust_idata(dev_idata);
           thrust::device_ptr<int> dev_thrust_odata(dev_odata);
 
-          thrust::device_vector<int> dev_vector_idata(dev_thrust_idata, dev_thrust_idata + n);
-          thrust::device_vector<int> dev_vector_odata(dev_thrust_odata, dev_thrust_odata + n);
+          // pass in cpu pointers here
+          thrust::device_vector<int> dev_vector_idata(idata, idata + n);
+          thrust::device_vector<int> dev_vector_odata(odata, odata + n);
 
           timer().startGpuTimer();
           thrust::exclusive_scan(idata, idata + n, odata);//dev_vector_idata.begin(), dev_vector_idata.end(), dev_vector_odata.begin());

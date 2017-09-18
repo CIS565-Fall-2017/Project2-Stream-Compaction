@@ -18,17 +18,18 @@ namespace StreamCompaction {
          * For performance analysis, this is supposed to be a simple for loop.
          * (Optional) For better understanding before starting moving to GPU, you can simulate your GPU scan in this function first.
          */
-        void scan(int n, int *odata, const int *idata) {
-#if TEST_TIME_IN_SCAN
-	        timer().startCpuTimer();
-#endif
+        void scan(int n, int *odata, const int *idata, bool internalUse) {
+          if (!internalUse) {
+            timer().startCpuTimer();
+          }
+
           odata[0] = 0;
           for (int i = 1; i < n; ++i) {
             odata[i] = idata[i - 1] + odata[i - 1];
           }
-#if TEST_TIME_IN_SCAN
-	        timer().endCpuTimer();
-#endif
+          if (!internalUse) {
+            timer().endCpuTimer();
+          }
         }
 
         /**
@@ -62,7 +63,7 @@ namespace StreamCompaction {
             temp[i] = (idata[i]) ? 1 : 0;
           }
           // scan
-          scan(n, scannedTemp, temp);
+          scan(n, scannedTemp, temp, true);
           // scatter
           for (int i = 0; i < n; ++i) {
             if (temp[i]) {
@@ -71,6 +72,16 @@ namespace StreamCompaction {
           }
 	        timer().endCpuTimer();
             return scannedTemp[n - 1] + (temp[n - 1] ? 1 : 0);
+        }
+
+        /**
+        * CPU sort function.
+        *
+        * @returns the number of elements remaining after compaction.
+        */
+        void sort(int n, int *odata, const int *idata) {
+          memcpy(odata, idata, n * sizeof(int));
+          std::sort(odata, odata + n);
         }
     }
 }
