@@ -122,7 +122,6 @@ namespace StreamCompaction {
 			StreamCompaction::Common::kernMapToBoolean << <blocksPerGrid1, blockSize >> > (pow2n, n, dbools, dev_in);
 			checkCUDAError("kernMapToBoolean failed!");
 		
-			// TODO: THIS IS CLOBBERING DEV_IN!!
 			scan_implementation(pow2n, dbools); // requires power of 2
 
 			int *num = (int *)malloc(sizeof(int));

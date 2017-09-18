@@ -15,13 +15,13 @@ namespace StreamCompaction {
 		/**
          * Maps an array to an array of 0s and 1s for bit n.
          */
-        __global__ void kernMapToBoolean(int n, int k, int *bools, const int *idata) {
+        __global__ void kernMapToBoolean(int pow2n, int n, int k, int *bools, const int *idata) {
             // TODO
 			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
-			if (index >= n) return;
+			if (index >= pow2n) return;
 
 			int val = 1 << k;
-			bools[index] = (idata[index] & val != 0) ? 0 : 1;
+			bools[index] = ((idata[index] & val) != 0 || index >= n) ? 0 : 1;
         }
 
         /**
@@ -62,35 +62,37 @@ namespace StreamCompaction {
 		{
 			dim3 blocksPerGrid((n + blockSize - 1) / blockSize);
 
+			int pow2n = 1 << ilog2ceil(n + 1);
+
 			// Step 1: compute e array
-			kernMapToBoolean<<<blocksPerGrid, blockSize>>>(n, k, f_arr, dev_in);
+			kernMapToBoolean<<<blocksPerGrid, blockSize>>>(pow2n, n, k, f_arr, dev_in);
 			checkCUDAError("kernMapToBoolean failed!");
 
 			cudaMemcpy(e_arr, f_arr, n * sizeof(int), cudaMemcpyDeviceToDevice);
 			checkCUDAError("cudaMemcpyDeviceToDevice failed!");
 
-			//// Step 2: exclusive scan e
-			//StreamCompaction::Efficient::scan_implementation(n, f_arr);
+			// Step 2: exclusive scan e
+			StreamCompaction::Efficient::scan_implementation(pow2n, f_arr);
 
-			//// Step 3: compute totalFalses
-			//cudaMemcpy(last_e, e_arr + n - 1, sizeof(int), cudaMemcpyDeviceToHost);
-			//checkCUDAError("last_e cudaMemcpyDeviceToHost failed!");
+			// Step 3: compute totalFalses
+			cudaMemcpy(last_e, e_arr + n - 1, sizeof(int), cudaMemcpyDeviceToHost);
+			checkCUDAError("last_e cudaMemcpyDeviceToHost failed!");
 
-			//cudaMemcpy(last_f, f_arr + n - 1 , sizeof(int), cudaMemcpyDeviceToHost);
-			//checkCUDAError("last_f cudaMemcpyDeviceToHost failed!");
+			cudaMemcpy(last_f, f_arr + n - 1 , sizeof(int), cudaMemcpyDeviceToHost);
+			checkCUDAError("last_f cudaMemcpyDeviceToHost failed!");
 
-			//int totalFalses = *last_e + *last_f;
+			int totalFalses = *last_e + *last_f;
 
-			//// Step 4: compute t array
-			//kernComputeT<<<blocksPerGrid, blockSize>>>(n, totalFalses, t_arr, f_arr);
-			//checkCUDAError("kernComputeT failed!");
+			// Step 4: compute t array
+			kernComputeT<<<blocksPerGrid, blockSize>>>(n, totalFalses, t_arr, f_arr);
+			checkCUDAError("kernComputeT failed!");
 
-			//// Step 4: scatter based on address d
-			//kernComputeD<<<blocksPerGrid, blockSize>>>(n, e_arr, f_arr, t_arr);
-			//checkCUDAError("kernComputeD failed!");
+			// Step 4: scatter based on address d
+			kernComputeD<<<blocksPerGrid, blockSize>>>(n, e_arr, f_arr, t_arr);
+			checkCUDAError("kernComputeD failed!");
 
-			//kernScatterD<<<blocksPerGrid, blockSize>>>(n, f_arr, e_arr, dev_in);
-			//checkCUDAError("kernScatterD failed!");
+			kernScatterD<<<blocksPerGrid, blockSize>>>(n, f_arr, e_arr, dev_in);
+			checkCUDAError("kernScatterD failed!");
 		}
 
         /**
@@ -109,13 +111,15 @@ namespace StreamCompaction {
 			int *t_arr;
 			int *dev_in;
 
+			int pow2n = 1 << ilog2ceil(n);
+
 			int *last_e = (int *)malloc(sizeof(int));
 			int *last_f = (int *)malloc(sizeof(int));
 
 			cudaMalloc((void**)&e_arr, n * sizeof(int));
 			checkCUDAError("cudaMalloc e_arr failed!");
 
-			cudaMalloc((void**)&f_arr, n * sizeof(int));
+			cudaMalloc((void**)&f_arr, pow2n * sizeof(int));
 			checkCUDAError("cudaMalloc f_arr failed!");
 
 			cudaMalloc((void**)&t_arr, n * sizeof(int));
@@ -128,7 +132,7 @@ namespace StreamCompaction {
 			checkCUDAError("cudaMemcpy dev_in failed!");
 
 			timer().startGpuTimer();
-			for (int k = 1; k < 2; ++k) {
+			for (int k = 0; k < 8 * sizeof(int); ++k) {
 				sort_implementation(n, k, last_e, last_f, e_arr, f_arr, t_arr, dev_in);
 
 				cudaMemcpy(dev_in, f_arr, n * sizeof(int), cudaMemcpyDeviceToDevice);
@@ -136,7 +140,7 @@ namespace StreamCompaction {
 			}
 			timer().endGpuTimer();
 
-			cudaMemcpy(odata, e_arr, n * sizeof(int), cudaMemcpyDeviceToHost);
+			cudaMemcpy(odata, f_arr, n * sizeof(int), cudaMemcpyDeviceToHost);
 			checkCUDAError("cudaMemcpyDeviceToHost failed!");
 
 			free(last_e);
