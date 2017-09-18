@@ -37,9 +37,13 @@ namespace StreamCompaction {
 
 			// smallest power of 2 >= n
 			int pow2 = pow(2,ilog2ceil(n));
-			cudaMalloc((void**)&inData, (pow2) * sizeof(int));
-			cudaMalloc((void**)&outData, (pow2) * sizeof(int));
-			cudaMemcpy(inData, idata, sizeof(int)*n, cudaMemcpyHostToDevice);
+			cudaMalloc((void**)&inData, (pow2 + 1) * sizeof(int));
+			cudaMalloc((void**)&outData, (pow2 + 1) * sizeof(int));
+
+			// shift the input array to the right and pad with a zero.
+			int a = 0;
+			cudaMemcpy(&inData[0], &a, sizeof(int), cudaMemcpyHostToDevice);
+			cudaMemcpy(&inData[1], idata, sizeof(int)*n, cudaMemcpyHostToDevice);
 			cudaThreadSynchronize();
 
 			int levels = ilog2ceil(n);
