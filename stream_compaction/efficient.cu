@@ -129,9 +129,9 @@ namespace StreamCompaction {
 
 			//Up-Sweep
 			for (int d = 0; d <= celllog - 1; d++) {
-				int num_operations = (1 << (d + 1));
-				blockNum = (pow2len / num_operations + blockSize) / blockSize;
-				cudaSweepUp<<<blockNum, blockSize>>>(pow2len / num_operations, d, dev_data);
+				int interval_length = (1 << (d + 1));
+				blockNum = (pow2len / interval_length + blockSize) / blockSize;
+				cudaSweepUp<<<blockNum, blockSize>>>(pow2len / interval_length, d, dev_data);
 			}
 			
 			//cudaMemcpy(odata, dev_data, n * sizeof(int), cudaMemcpyDeviceToHost);
