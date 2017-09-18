@@ -69,28 +69,28 @@ namespace StreamCompaction {
 			cudaMemcpy(e_arr, f_arr, n * sizeof(int), cudaMemcpyDeviceToDevice);
 			checkCUDAError("cudaMemcpyDeviceToDevice failed!");
 
-			// Step 2: exclusive scan e
-			scan_implementation(n, f_arr);
+			//// Step 2: exclusive scan e
+			//StreamCompaction::Efficient::scan_implementation(n, f_arr);
 
-			// Step 3: compute totalFalses
-			cudaMemcpy(last_e, e_arr + n - 1, sizeof(int), cudaMemcpyDeviceToHost);
-			checkCUDAError("last_e cudaMemcpyDeviceToHost failed!");
+			//// Step 3: compute totalFalses
+			//cudaMemcpy(last_e, e_arr + n - 1, sizeof(int), cudaMemcpyDeviceToHost);
+			//checkCUDAError("last_e cudaMemcpyDeviceToHost failed!");
 
-			cudaMemcpy(last_f, dbools + n - 1 , sizeof(int), cudaMemcpyDeviceToHost);
-			checkCUDAError("last_f cudaMemcpyDeviceToHost failed!");
+			//cudaMemcpy(last_f, f_arr + n - 1 , sizeof(int), cudaMemcpyDeviceToHost);
+			//checkCUDAError("last_f cudaMemcpyDeviceToHost failed!");
 
-			int totalFalses = *last_e + *last_f;
+			//int totalFalses = *last_e + *last_f;
 
-			// Step 4: compute t array
-			kernComputeT<<<blocksPerGrid, blockSize>>>(n, totalFalses, t_arr, f_arr);
-			checkCUDAError("kernComputeT failed!");
+			//// Step 4: compute t array
+			//kernComputeT<<<blocksPerGrid, blockSize>>>(n, totalFalses, t_arr, f_arr);
+			//checkCUDAError("kernComputeT failed!");
 
-			// Step 4: scatter based on address d
-			kernComputeD<<<blocksPerGrid, blockSize>>>(n, e_arr, f_arr, t_arr);
-			checkCUDAError("kernComputeD failed!");
+			//// Step 4: scatter based on address d
+			//kernComputeD<<<blocksPerGrid, blockSize>>>(n, e_arr, f_arr, t_arr);
+			//checkCUDAError("kernComputeD failed!");
 
-			kernScatterD<<<blocksPerGrid, blockSize>>>(n, f_arr, e_arr, dev_in);
-			checkCUDAError("kernScatterD failed!");
+			//kernScatterD<<<blocksPerGrid, blockSize>>>(n, f_arr, e_arr, dev_in);
+			//checkCUDAError("kernScatterD failed!");
 		}
 
         /**
@@ -128,12 +128,15 @@ namespace StreamCompaction {
 			checkCUDAError("cudaMemcpy dev_in failed!");
 
 			timer().startGpuTimer();
-			for (int k = 0; k < 8 * sizeof(int); ++k) {
+			for (int k = 1; k < 2; ++k) {
 				sort_implementation(n, k, last_e, last_f, e_arr, f_arr, t_arr, dev_in);
+
+				cudaMemcpy(dev_in, f_arr, n * sizeof(int), cudaMemcpyDeviceToDevice);
+				checkCUDAError("cudaMemcpyDeviceToDevice failed!");
 			}
 			timer().endGpuTimer();
 
-			cudaMemcpy(odata, f_arr, n * sizeof(int), cudaMemcpyDeviceToHost);
+			cudaMemcpy(odata, e_arr, n * sizeof(int), cudaMemcpyDeviceToHost);
 			checkCUDAError("cudaMemcpyDeviceToHost failed!");
 
 			free(last_e);

@@ -102,6 +102,8 @@ namespace StreamCompaction {
         			max = val;
         		}
         	}
+
+			return max;
         }
 
         void countSort(int n, int d, int *odata, int *idata)
@@ -122,28 +124,33 @@ namespace StreamCompaction {
         	}
         }
 
-        /**
-         * CPU sort
-         */
-        void sort_implementation(int n, int *odata, const int *idata)
-		{
-	        // TODO
-	        int max = findMax(n, idata);
-	        for (int d = 1; max/d > 0; d *= 10) {
-	        	countSort(n, d, odata, idata);
-	        	std::swap(idata, odata);
-	        }
-        }
-
 		/**
          * CPU sort
          */
         void sort(int n, int *odata, const int *idata)
 		{
-	        timer().startCpuTimer();
-			sort_implementation(n, odata, idata);
-	        timer().endCpuTimer();
-        }
+	        // TODO
+			int* temp = new int[n];
 
+			for (int i = 0; i < n; ++i) {
+				odata[i] = idata[i];
+			}
+				
+			timer().startCpuTimer();
+			int max = findMax(n, idata);
+			bool eo = true;
+			for (int d = 1; max / d > 0; d *= 10) {
+				countSort(n, d, temp, odata);
+				std::swap(temp, odata);
+				eo = !eo;
+			}
+			timer().endCpuTimer();
+
+			if (!eo) {
+				std::swap(temp, odata);
+				std::memcpy(odata, temp, n * sizeof(int));
+			}
+			delete[] temp;
+        }
     }
 }
