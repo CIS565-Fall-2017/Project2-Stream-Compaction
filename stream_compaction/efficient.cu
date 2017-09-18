@@ -4,7 +4,6 @@
 #include "efficient.h"
 
 //static int usetimer = 1;
-
 namespace StreamCompaction {
     namespace Efficient {
         using StreamCompaction::Common::PerformanceTimer;
@@ -35,6 +34,7 @@ namespace StreamCompaction {
 			if (index >= pow2roundedsize || index < orig_size) return;
 			data[index] = 0;
 		}
+
         /**
          * Performs prefix-sum (aka scan) on idata, storing the result into odata.
          */
@@ -135,8 +135,6 @@ namespace StreamCompaction {
 			const int numbytes_copy = n * sizeof(int);
 			const int pow2roundedsize = 1 << ilog2ceil(n);
 			const int numbytes_pow2roundedsize = pow2roundedsize * sizeof(int);
-			//int* bools = new int[n];
-			//int* indices = new int[n];
 			int* dev_idata;
 			int* dev_odata;
 			int* dev_bools;
@@ -152,9 +150,6 @@ namespace StreamCompaction {
 			cudaMalloc((void**)&dev_bools, numbytes_copy);
 			checkCUDAError("cudaMalloc dev_bools failed!");
 
-			//cudaMalloc((void**)&dev_indices, numbytes_copy);
-			//checkCUDAError("cudaMalloc dev_indices failed!");
-
 			cudaMalloc((void**)&dev_indices, numbytes_pow2roundedsize);
 			checkCUDAError("cudaMalloc dev_indices failed!");
 
@@ -166,12 +161,6 @@ namespace StreamCompaction {
             timer().startGpuTimer();
 
 			StreamCompaction::Common::kernMapToBoolean<<<gridDim, blockSize>>>(n, dev_bools, dev_idata);
-			//cudaMemcpy(bools, dev_bools, numbytes_copy, cudaMemcpyDeviceToHost);
-			//checkCUDAError("cudaMemcpy dev_bools to bools failed!");
-
-			//StreamCompaction::Efficient::scan_notimer(n, indices, bools);
-			//cudaMemcpy(dev_indices, indices, numbytes_copy, cudaMemcpyHostToDevice);
-			//checkCUDAError("cudaMemcpy indices to dev_indices failed!");
 
 			{//generate scan
 				cudaMemcpy(dev_indices, dev_bools, numbytes_copy, cudaMemcpyDeviceToDevice);
@@ -213,11 +202,6 @@ namespace StreamCompaction {
 			cudaMemcpy(&boolsLAST, dev_bools + n - 1, sizeof(int), cudaMemcpyDeviceToHost);
 			checkCUDAError("cudaMemcpy dev_bools to boolsLAST failed!");
 			const int size = indicesLAST + boolsLAST;
-			//printf("\nindicesLAST: %i\nboolsLAST: %i\nidataLAST: %i\n", indicesLAST, boolsLAST, idataLAST);
-
-			//const int size = indices[n-1] + bools[n-1];
-			//delete[] bools;
-			//delete[] indices;
 
 			cudaFree(dev_idata);
 			checkCUDAError("cudaFree of dev_idata failed!");

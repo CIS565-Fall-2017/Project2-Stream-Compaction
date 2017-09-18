@@ -13,7 +13,21 @@
 #define FILENAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #define checkCUDAError(msg) checkCUDAErrorFn(msg, FILENAME, __LINE__)
 
-#define blockSize 64
+#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+   if (code != cudaSuccess) 
+   {
+      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      if (abort) exit(code);
+   }
+}
+#define blockSize 256
+
+#define NUM_BANKS 32
+#define LOG_NUM_BANKS 5
+#define CONFLICT_FREE_OFFSET(n) \
+    ((n) >> NUM_BANKS + (n) >> (2 * LOG_NUM_BANKS))
 /**
  * Check for CUDA errors; print and exit if there was a problem.
  */
@@ -28,7 +42,7 @@ inline int ilog2(int x) {
 }
 
 inline int ilog2ceil(int x) {
-    return ilog2(x - 1) + 1;
+    return x == 1 ? 0 : ilog2(x - 1) + 1;
 }
 
 namespace StreamCompaction {
