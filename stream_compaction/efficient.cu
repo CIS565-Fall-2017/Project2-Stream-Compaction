@@ -58,8 +58,9 @@ namespace StreamCompaction {
      * Performs prefix-sum (aka scan) on idata, storing the result into odata.
      */
     void scan(int n, int *odata, const int *idata) {
-      int d, width, numThreads, numBlocks;
+      int d, numThreads, numBlocks;
 
+      int width = 1;
       int nPowerOfTwo = pow(2, ilog2ceil(n));
       int numIterations = ilog2(nPowerOfTwo) - 1;
 
@@ -71,7 +72,7 @@ namespace StreamCompaction {
 
       for (d = 0; d <= numIterations; d++)
       {
-        width = pow(2, d + 1);
+        width *= 2;
         numThreads = nPowerOfTwo / width;
         numBlocks = (numThreads + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
@@ -79,10 +80,11 @@ namespace StreamCompaction {
       }
 
       kernSetValueToZero << <1, 1 >> > (nPowerOfTwo - 1, dev_data);
+      width = pow(2, numIterations + 2);
 
       for (d = numIterations; d >= 0; d--)
       {
-        width = pow(2, d + 1);
+        width /= 2;
         numThreads = nPowerOfTwo / width;
         numBlocks = (numThreads + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
@@ -106,7 +108,7 @@ namespace StreamCompaction {
      * @returns      The number of elements remaining after compaction.
      */
     int compact(int n, int *odata, const int *idata) {
-      int size = 0;
+      int size;
       int numBlocks = (n + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
       cudaMalloc((void**)&dev_idata, n * sizeof(int));
@@ -121,10 +123,7 @@ namespace StreamCompaction {
       Common::kernMapToBoolean << <numBlocks, BLOCK_SIZE>> > (n, dev_bools, dev_idata);
       cudaMemcpy(odata, dev_bools, n * sizeof(int), cudaMemcpyDeviceToHost);
 
-      if (odata[n - 1] == 1)
-      {
-        size++;
-      }
+      size = odata[n - 1];
 
       scan(n, odata, odata);
 

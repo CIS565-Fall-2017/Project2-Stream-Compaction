@@ -48,9 +48,7 @@ namespace StreamCompaction {
 
           if (bools[index] == 1)
           {
-            int offset = index == n - 1 ? 1 : 0;
-
-            odata[indices[index] + offset] = idata[index];
+            odata[indices[index]] = idata[index];
           }
         }
 
