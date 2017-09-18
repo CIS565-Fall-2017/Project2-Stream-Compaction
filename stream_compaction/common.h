@@ -22,12 +22,13 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
       if (abort) exit(code);
    }
 }
-#define blockSize 256
+//MUST BE POW2 for efficient shared mem inclusive scan to work
+#define blockSize (1 << 7)
 
 #define NUM_BANKS 32
 #define LOG_NUM_BANKS 5
 #define CONFLICT_FREE_OFFSET(n) \
-    ((n) >> NUM_BANKS + (n) >> (2 * LOG_NUM_BANKS))
+    ((n) >> NUM_BANKS + (n) >> (LOG_NUM_BANKS << 1))
 /**
  * Check for CUDA errors; print and exit if there was a problem.
  */

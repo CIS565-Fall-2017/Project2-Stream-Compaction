@@ -19,23 +19,26 @@ namespace StreamCompaction {
 			data[index] = 0;
 		}
 
-
+#define AVOIDBANKCONFLICT 0
 		__global__ void kernScan(const int shMemEntries, int* odata, const int* idata, int* SUMS) {
 			extern __shared__ int temp[];
 			const int thid_blk = threadIdx.x;
 			const int thid_grid = blockIdx.x * blockDim.x + threadIdx.x;
 			
-			//A
+
+#if AVOIDBANKCONFLICT == 1
+			const int ai = thid_blk;
+			const int bi = thid_blk + blockDim.x;
+			const int bankOffsetA = CONFLICT_FREE_OFFSET(ai);
+			const int bankOffsetB = CONFLICT_FREE_OFFSET(bi);
+			const int ai_grid = blockIdx.x*shMemEntries + thid_blk;
+			const int bi_grid = ai_grid + blockDim.x;
+			temp[ai + bankOffsetA] = idata[ai_grid];
+			temp[bi + bankOffsetB] = idata[bi_grid];
+#else
 			temp[2*thid_blk]   = idata[2*thid_grid];
 			temp[2*thid_blk+1] = idata[2*thid_grid+1];
-			//int ai = thid_blk;
-			//int bi = thid_blk + (shMemEntries >> 1);
-			//int bankOffsetA = CONFLICT_FREE_OFFSET(ai)
-			//int bankOffsetB = CONFLICT_FREE_OFFSET(bi)
-			//int ai_grid = thid_grid;
-			//int bi_grid = thid_grid + (shMemEntries >> 1);
-			//temp[ai + bankOffsetA] = g_idata[ai_grid]
-			//temp[bi + bankOffsetB] = g_idata[bi_grid]
+#endif
 
 			//Scan upswep
 			int offset = 1;
@@ -44,13 +47,21 @@ namespace StreamCompaction {
 				if (thid_blk < d) {//last iter offset is 64, lchild should be 63 and rchild 127
 					int lchild = offset*(2*thid_blk+1)-1;
 					int rchild = offset*(2*thid_blk+2)-1;
+#if AVOIDBANKCONFLICT == 1
+					lchild += CONFLICT_FREE_OFFSET(lchild);
+					rchild += CONFLICT_FREE_OFFSET(rchild);
+#endif
 					temp[rchild] += temp[lchild];
 				}
 				offset <<= 1;
 			}
 
 			//intermediate step, copy the block sums to SUMS 
-			const int lastindex = shMemEntries - 1;
+			int lastindex = shMemEntries - 1;
+#if AVOIDBANKCONFLICT == 1
+			lastindex += CONFLICT_FREE_OFFSET(lastindex);
+#endif
+
 			if (gridDim.x > 1 && 0 == thid_blk) { SUMS[blockIdx.x] = temp[lastindex]; }
 
 			//zero last element for this block
@@ -63,6 +74,10 @@ namespace StreamCompaction {
 				if (thid_blk < d) {
 					int lchild = offset*(2*thid_blk+1)-1;
 					int rchild = offset*(2*thid_blk+2)-1;
+#if AVOIDBANKCONFLICT == 1
+					lchild += CONFLICT_FREE_OFFSET(lchild);
+					rchild += CONFLICT_FREE_OFFSET(rchild);
+#endif
 					int otherparent = temp[lchild];
 					temp[lchild] = temp[rchild];
 					temp[rchild] += otherparent;
@@ -70,8 +85,13 @@ namespace StreamCompaction {
 			}
 			__syncthreads();
 
+#if AVOIDBANKCONFLICT == 1
+			odata[ai_grid] = temp[ai + bankOffsetA];
+			odata[bi_grid] = temp[bi + bankOffsetB];
+#else
 			odata[2*thid_grid]   = temp[2*thid_blk];
 			odata[2*thid_grid+1] = temp[2*thid_blk+1];
+#endif
 		}
 
 		__global__ void kernAddBack(const int n, int* odata, const int* scannedSumsLevel) {
