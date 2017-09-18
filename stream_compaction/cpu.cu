@@ -92,5 +92,24 @@ namespace StreamCompaction {
 	        timer().endCpuTimer();
             return num;
         }
+
+        /**
+         * CPU sort
+         */
+        void sort_implementation(int n, int *odata, const int *idata)
+		{
+	        // TODO
+        }
+
+		/**
+         * CPU sort
+         */
+        void sort(int n, int *odata, const int *idata)
+		{
+	        timer().startCpuTimer();
+			sort_implementation(n, odata, idata);
+	        timer().endCpuTimer();
+        }
+
     }
 }
