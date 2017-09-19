@@ -13,22 +13,60 @@ Stream compaction is a technique that performs the following: given an array and
 ![](img/readme/StreamCompactionExample.png)
 
 It is used to reduce the bandwidth from the GPU to the CPU.
-
 It is commonly used in applications such as path tracing, collision detection, sparse matrix compression, etc.
 
-### CP
+A efficient parallelized Stream Compaction algorithm uses the scan algorithm as its backbone. Scanning involves converting an input arrayinto an output array such that every position in the output array is equal to a specified operation over every element before it in the input array.
 
-### Naive
+For example, given an input array x = {1, 3, 5, 9} and the addition operation, any element in the output array, y[i], is equal to x[0] + x[1] + ... + x[i]. This makes y = {1, 1+3, 1+3+5, 1+3+5+9} = {1, 4, 9, 18}. 
 
-### Work Efficient
+When the first element of the output array is simply a copy of the first element of the input array, as is the case here, this is called an Inclusive Scan.
 
-### Thrust
+An Exclusive Scan is an inclusive scan shifted to the right by one element and filling in a '0' where the first element of the array was.
+
+### CPU Scan
+
+This is a simple loop over all the N elements in an array which keeps accumulating value in its successive elements. This algorithm is very lean and runs in O(N) time.
+
+### Naive GPU Scan
+
+![](img/readme/naiveScan.jpg)
+
+_(Note that this is an inclusive scan, but we want an exclusive scan for this project. In order to accomplish this, we can simply shift the result of the inclusive scan to the right.)_
+
+The naive parallel implementation found in the solution file is essentially a [Kogge-Stone Adder](https://en.wikipedia.org/wiki/Kogge%E2%80%93Stone_adder). This is naive because it isn't work efficient (it does relatively excessive amournt of work). We simply traverse over the N elements log N times in parallel. On the first iteration, each pair of elements is summed, creating partial sums that we will use in the next iterations. It does O(N log N) work.
+
+### Work Efficient GPU Scan
+
+![](img/readme/UpSweep.jpg)
+
+_(UpSweep)_
+
+![](img/readme/DownSweep.jpg)
+
+_(DownSweep)_
+
+### Thrust GPU Scan
+
+Finally, in order to have a parallel benchmark to compare to, we use Thrust's implementation of exlusive scanning. via the function Thrust::exclusive_scan().
 
 ### Performance Analysis
 
 All of the measurements in the performance analysis EXCLUDE memory management (copy, allocations, free) operations whenever they are not necessary for the execution of the algorithm by itself.
 
-### Test Outputs
+
+![](img/readme/ScanImplementation1.png)
+
+_(Scan Data Zoomed In to a lower Range)_
+
+![](img/readme/ScanImplementation2.png)
+
+_(Overall Scan Data)_
+
+![](img/readme/ScanImplementationsData.png)
+
+_(Scan Data values)_
+
+### Test Results
 ```
 ****************
 ** SCAN TESTS **
