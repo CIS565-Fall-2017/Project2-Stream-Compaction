@@ -13,16 +13,15 @@ namespace StreamCompaction {
             return timer;
         }
         
-		__global__ void kernScanNaive(int N, int d, int *odata, const int *idata)
+		__global__ void kernScanNaive(int N, int stride, int *odata, const int *idata)
 		{
 			int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
 			if (idx >= N) return;
 
-			int num_d = 1 << (d - 1);
-			if (idx >= num_d)
+			if (idx >= stride)
 			{
-				odata[idx] = idata[idx - num_d] + idata[idx];
+				odata[idx] = idata[idx - stride] + idata[idx];
 			}
 			else
 			{
@@ -44,10 +43,9 @@ namespace StreamCompaction {
          */
         void scan(int n, int *odata, const int *idata) {
 			//Dimensions
-			int blockSize = 128;
+			int blockSize = 256;
 			int depth = ilog2ceil(n);
-			dim3 threadsPerGrid(blockSize);
-			dim3 blocksPerGrid((n + blockSize - 1) / blockSize);
+			int blocksPerGrid = (n + blockSize - 1) / blockSize;
 
 			//Memory allocation
 			int *dev_idata, *dev_odata;
@@ -60,21 +58,23 @@ namespace StreamCompaction {
 
 			timer().startGpuTimer();
 
-
-			for (int d = 1; d <= depth; ++d) {
-				kernScanNaive << <blocksPerGrid, threadsPerGrid >> >(n, d, dev_odata, dev_idata);
+			int stride = 1;
+			for (int d = 0; d < depth; ++d) {
+				kernScanNaive << <blocksPerGrid, blockSize >> >(n, stride, dev_odata, dev_idata);
 				int *temp = dev_odata;
 				dev_odata = dev_idata;
 				dev_idata = temp;
+				stride *= 2;
 			}
 
-			kernInclusiveToExclusive << < blocksPerGrid, threadsPerGrid >> > (n, dev_odata, dev_idata);
+			kernInclusiveToExclusive << < blocksPerGrid, blockSize >> > (n, dev_odata, dev_idata);
 
 			timer().endGpuTimer();
 
 			cudaMemcpy(odata, dev_odata, n * sizeof(int), cudaMemcpyDeviceToHost);
 			cudaFree(&dev_idata);
 			cudaFree(&dev_odata);
+			cudaDeviceSynchronize();
         }
     }
 }

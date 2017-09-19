@@ -61,7 +61,7 @@ namespace StreamCompaction {
 				}
 			}
 	        timer().endCpuTimer();
-            return -1;
+            return count;
         }
 
         /**
@@ -87,7 +87,7 @@ namespace StreamCompaction {
 				}
 			}
 	        timer().endCpuTimer();
-            return -1;
+            return count;
         }
     }
 }

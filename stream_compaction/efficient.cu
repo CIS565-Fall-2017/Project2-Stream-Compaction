@@ -19,10 +19,17 @@ namespace StreamCompaction {
 
 			if (idx >= n) return;
 
-			if (idx % offset == 0)
+			if (n == 1)
 			{
-				odata[idx + offset - 1] += odata[idx + (offset >> 1) - 1];
+				odata[offset - 1] = 0;
+				return;
 			}
+
+			int cur = (idx + 1) * offset - 1;
+
+			int prev = cur - (offset / 2);
+
+			odata[cur] += odata[prev];
 		}
 
 		__global__ void kernDownSweep(int n, int offset, int *odata)
@@ -31,54 +38,74 @@ namespace StreamCompaction {
 
 			if (idx >= n) return;
 
-			if (idx == n - 1) {
-				odata[idx] = 0;
-				return;
-			}
+			int cur = (idx + 1) * offset - 1;
 
-			if (idx % offset == 0)
+			int prev = cur - (offset / 2);
+
+			int temp = odata[prev];
+			odata[prev] = odata[cur];
+			odata[cur] += temp;
+		}
+
+		int getPadded(int n) {
+			int countOfOnes = 0;
+			int ret = 1;
+			while (n != 1)
 			{
-				int temp = odata[idx + (offset >> 1) - 1];
-				odata[idx + (offset >> 1) - 1] = odata[idx + offset - 1];
-				odata[idx + offset - 1] += temp;
+				if (n & 1 == 1)
+				{
+					++countOfOnes;
+				}
+				n >>= 1;
+				ret <<= 1;
 			}
+			if (countOfOnes == 0) return ret;
+			else return ret << 1;
 		}
 
         /**
          * Performs prefix-sum (aka scan) on idata, storing the result into odata.
          */
         void scan(int n, int *odata, const int *idata) {
-			int *dev_odata, *dev_idata;
+			int *dev_odata;
 			dev_odata = nullptr;
-			dev_idata = nullptr;
 
-			//cudaMalloc(&dev_idata, n * sizeof(int));
-			cudaMalloc(&dev_odata, n * sizeof(int));
-			//cudaMemcpy(dev_idata, idata, n * sizeof(int), cudaMemcpyHostToDevice);
-			cudaMemcpy(dev_odata, odata, n * sizeof(int), cudaMemcpyHostToDevice);
+			int numToCompute = getPadded(n);
+
+			cudaMalloc(&dev_odata, numToCompute * sizeof(int));
+			cudaMemset(dev_odata, 0, numToCompute);
+			cudaMemcpy(dev_odata, idata, n * sizeof(int), cudaMemcpyHostToDevice);
 
 			int depth = ilog2ceil(n);
-			int blockSize = 128;
+			int blockSize = 256;
+			int offset = 1;
 			dim3 threadPerBlock(blockSize);
-			dim3 blocksPerGrid((blockSize + n - 1) / blockSize);
 
 			timer().startGpuTimer();
 
 			for (int i = 0; i < depth; ++i)
 			{
-				kernUpSweep << <blocksPerGrid, threadPerBlock >> > (n, 1 << (i + 1), dev_odata);
+				numToCompute /= 2;
+				offset *= 2;
+				int blocksPerGrid = (numToCompute + blockSize - 1) / blockSize;
+				kernUpSweep << <blocksPerGrid, blockSize >> > (numToCompute, offset, dev_odata);
+
 			}
 
-			for (int i = depth - 1; i >= 0; --i)
-			{
-				kernDownSweep << <blocksPerGrid, threadPerBlock >> > (n, 1 << (i + 1), dev_odata);
+			numToCompute = 1;
+			for (int i = 0; i < depth; ++i)
+				{
+				int blocksPerGrid = (numToCompute + blockSize - 1) / blockSize;
+				kernDownSweep << <blocksPerGrid, blockSize >> > (numToCompute, offset, dev_odata);
+				numToCompute *= 2;
+				offset /= 2;
 			}
 
 			timer().endGpuTimer();
 
 			cudaMemcpy(odata, dev_odata, n * sizeof(int), cudaMemcpyDeviceToHost);
-			cudaFree(dev_idata);
 			cudaFree(dev_odata);
+			cudaDeviceSynchronize();
         }
 
         /**
