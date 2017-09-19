@@ -27,7 +27,8 @@ namespace StreamCompaction {
 			bool timerHasStartedElsewhere = false;
 			try
 			{
-				timer().startCpuTimer();	//if this fails (b/c it was called elsewhere), it'll go into the catch
+				//If this fails (b/c it was called elsewhere), it'll go into the catch
+				timer().startCpuTimer();	
 			}
 			catch (std::runtime_error &e)
 			{
@@ -76,7 +77,7 @@ namespace StreamCompaction {
 
 			timer().endCpuTimer();
 
-			return counter;		//return size of odata 
+			return counter;
         }
 
         /**
@@ -95,8 +96,10 @@ namespace StreamCompaction {
 	        
 			// TODO
 			//Map input array to temp array of 0's and 1's
-			int* itemp = (int *)malloc(sizeof(int) * n); //new int[n];
+			//int* itemp = new int[n];	
+			int* itemp = (int *)malloc(sizeof(int) * n); 
 			int counter = 0;
+
 			for (int k = 0; k < n; k++)
 			{
 				if (idata[k] != 0)
@@ -111,7 +114,8 @@ namespace StreamCompaction {
 			}
 
 			//Scan temp array
-			int* otemp = (int *)malloc(sizeof(int) * n); //new int[n];
+			//int* otemp = new int[n];	
+			int* otemp = (int *)malloc(sizeof(int) * n); 
 			scan(n, otemp, itemp);
 
 
@@ -122,34 +126,21 @@ namespace StreamCompaction {
 			{
 				if (itemp[k] == 1)
 				{
-					int otempK = otemp[k];
-					int idatak = idata[k];
+					int otemp_index = otemp[k];
+					int idata_value = idata[k];
 
-					//if (otemp[k] == 0)
-					//{
-					//	int blah = idata[k];
-					//	printf("blah");
-					//}
-
-					odata[otemp[k]] = idata[k];
+					odata[otemp_index] = idata_value;
 					counter2++;
 				}
 			}
 
-
-			//TESTING
-			//for (int k = 0; k < counter; k++)
-			//{
-			//	if (odata[k] == 0)
-			//	{
-			//		printf("The result of counter and counter 2 is %d and %d\n", counter, counter2);
-			//		printf("The result of odata is %d\n", odata[k]);
-			//	}
-			//}
-
-
-
 	        timer().endCpuTimer();
+
+			//delete[] itemp;
+			//delete[] otemp;
+			free(itemp);
+			free(otemp);
+
             return counter;
         }
     }
