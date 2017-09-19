@@ -32,10 +32,10 @@ There is not much performance change with block size changes. I set it to 512 fo
 2. Scan performance comparason with array size changes
 ![ScanPerformanceAnalysis](/img/ScanPerformanceAnalysis.PNG)
 <p align="center"><b>Exclusive Scan Performance Analysis with Increasing Array Size</b></p>
-* It can be observed from the graph that the performance ranking is as follows: thrust > CPU > GPU Naive Scan > GPU Work Efficient Scan. The performance of GPU version scanning is worse than CPU version in my implementation. 
-* For GPU Naive Scan, it runs log2n levels, with each level of n threads, so the total number of threads is n*Log2n, which is more than the number of elements check in CPU. Moreover I need to do a right shift of the Naive scan result which is another n threads. Although these threads can run in parallel, but considering the the thread scheduling on GPU, the advantage of naive scan is not that obvious comparing to CPU version. 
-* For GPU Work Efficient Scan, I am doint an up sweep and a down sweep, which result in 2*log2n levels of kernal function calls. Each level consists of n threads, so the total number of threads would be 2n*log2n. It needs twice the thread number as Naive scan. In fact, many threads in each level are not doing work because they do not meet index%2^(level+1), but since all the threads in the same warp need to wait for each other to complete their tasks together, the non-functioning threads still takes time.
-* thrust's performance is the best of all scan methods.
+   * It can be observed from the graph that the performance ranking is as follows: thrust > CPU > GPU Naive Scan > GPU Work Efficient Scan. The performance of GPU version scanning is worse than CPU version in my implementation. 
+   * For GPU Naive Scan, it runs log2n levels, with each level of n threads, so the total number of threads is n*Log2n, which is more than the number of elements check in CPU. Moreover I need to do a right shift of the Naive scan result which is another n threads. Although these threads can run in parallel, but considering the the thread scheduling on GPU, the advantage of naive scan is not that obvious comparing to CPU version. 
+   * For GPU Work Efficient Scan, I am doint an up sweep and a down sweep, which result in 2*log2n levels of kernal function calls. Each level consists of n threads, so the total number of threads would be 2n*log2n. It needs twice the thread number as Naive scan. In fact, many threads in each level are not doing work because they do not meet index%2^(level+1), but since all the threads in the same warp need to wait for each other to complete their tasks together, the non-functioning threads still takes time.
+   * thrust's performance is the best of all scan methods.
 
 
 ##### Program Output at array SIZE = 2^15
