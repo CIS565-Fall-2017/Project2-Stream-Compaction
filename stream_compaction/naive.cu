@@ -43,6 +43,7 @@ namespace StreamCompaction {
          */
         void scan(int n, int *odata, const int *idata) {
 
+			// TODO
 			int* idev;
 			int* odev;
 			cudaMalloc((void**)&idev, n * sizeof(int));
@@ -58,8 +59,6 @@ namespace StreamCompaction {
 
             timer().startGpuTimer();
 
-            // TODO
-			int k = 1;
 			for (int k = 1; k < n; k<<=1)
 			{
 				naivescan <<< fullBlocksPerGrid, blockSize >>> (n, k, idev, odev);
