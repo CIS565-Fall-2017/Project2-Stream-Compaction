@@ -6,6 +6,9 @@
 
 namespace StreamCompaction {
     namespace Naive {
+
+		#define blockSize 128
+
         using StreamCompaction::Common::PerformanceTimer;
 
         PerformanceTimer& timer()

@@ -5,6 +5,9 @@
 
 namespace StreamCompaction {
     namespace Efficient {
+
+		#define blockSize 1024
+
         using StreamCompaction::Common::PerformanceTimer;
         PerformanceTimer& timer()
         {

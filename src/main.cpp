@@ -14,7 +14,7 @@
 #include <stream_compaction/thrust.h>
 #include "testing_helpers.hpp"
 
-const long SIZE = 1 << 20; // feel free to change the size of array //max size is 1<<22
+const long SIZE = 1 << 22; // feel free to change the size of array //max size is 1<<22
 const int NPOT = SIZE - 3; // Non-Power-Of-Two
 int a[SIZE], b[SIZE], c[SIZE];
 

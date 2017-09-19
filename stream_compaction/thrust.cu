@@ -8,6 +8,9 @@
 
 namespace StreamCompaction {
     namespace Thrust {
+
+		#define blockSize 512
+
         using StreamCompaction::Common::PerformanceTimer;
         PerformanceTimer& timer()
         {
@@ -19,24 +22,16 @@ namespace StreamCompaction {
          */
         void scan(int n, int *odata, const int *idata) 
 		{
-			thrust::device_vector<int> in(idata, idata + 1);
-			thrust::device_vector<int> out(odata, odata + 1);
-			//timer().startGpuTimer();
-			//thrust::exclusive_scan(dv_in.begin(), dv_in.end(), dv_out.begin());
-			//timer().endGpuTimer();
-			//Only time the actual exclusive scan and not the memory copies that go with it
-			timer().startGpuTimer();
-			thrust::exclusive_scan(in.begin(), in.end(), out.begin());
-			timer().endGpuTimer();
 			//Important Reference for creating thrust device vectors: 
 			//https://stackoverflow.com/questions/9495599/thrust-how-to-create-device-vector-from-host-array
 			
 			//create device vectors for thrust using the CPU side arrays idata and odata
 			thrust::device_vector<int> dv_in(idata, idata + n);
 			thrust::device_vector<int> dv_out(odata, odata + n);
-			//timer().startGpuTimer();
-			//thrust::exclusive_scan(dv_in.begin(), dv_in.end(), dv_out.begin());
-			//timer().endGpuTimer();
+			
+			//running it the first time out side timers because the first time thrust runs its very slow -- I don't know why
+			thrust::exclusive_scan(dv_in.begin(), dv_in.end(), dv_out.begin());
+
 			//Only time the actual exclusive scan and not the memory copies that go with it
 			timer().startGpuTimer();
 				thrust::exclusive_scan(dv_in.begin(), dv_in.end(), dv_out.begin());
