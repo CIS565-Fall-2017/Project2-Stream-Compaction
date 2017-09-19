@@ -27,7 +27,7 @@ Before recording any data for comparisons between scan methods, I wanted to ensu
 | 128 | 0.1635 | 1.0431 |
 | 256 | 0.1950 | 1.0347 |
 
-![](./images/Blocksize.png)
+![](./img/Blocksize.png)
 
 The differences are marginal. 64 gave the fastest time for 8912 elements. But for over half a million, 32 was clearly the fastest. 256 Was the worst for the smaller element count but better than 128 for the higher element count.
 
@@ -45,7 +45,7 @@ I tested four different methods for scans. On the CPU, a Naive parallel GPU, an 
 | 19 | 1.8206 | 1.8258 | 1.0133 | 0.4213 |
 | 21 | 3.6619 | 3.8506 | 2.1019 | 0.6583 |
 
-![](./images/Methods.png)
+![](./img/Methods.png)
 
 There are some oddities in the graph. A few of the recordings seemed to have a high variance. Here are some main takeaways:
 
