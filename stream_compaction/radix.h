@@ -3,9 +3,9 @@
 #include "common.h"
 
 namespace StreamCompaction {
-    namespace Naive {
+    namespace Radix {
         StreamCompaction::Common::PerformanceTimer& timer();
 
-        void scan(const int n, int *odata, const int *idata);
+        void radixSort(const int n, const int numbits, int *odata);
     }
 }
