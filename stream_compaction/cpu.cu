@@ -12,6 +12,8 @@ namespace StreamCompaction {
 	        return timer;
         }
 
+
+
         /**
          * CPU scan (prefix sum).
          * For performance analysis, this is supposed to be a simple for loop.
@@ -19,9 +21,30 @@ namespace StreamCompaction {
          */
         void scan(int n, int *odata, const int *idata) {
 	        timer().startCpuTimer();
-            // TODO
+            
+			odata[0] = 0;
+			for (int i = 1; i < n; i++) {
+				odata[i] = odata[i - 1] + idata[i - 1];
+			}
+
 	        timer().endCpuTimer();
         }
+
+		void scan_wo_timer(int n, int *odata, const int *idata) {
+			odata[0] = 0;
+			for (int i = 1; i < n; i++) {
+				odata[i] = odata[i - 1] + idata[i - 1];
+			}
+		}
+
+		void scan_incusive(int n, int *odata, const int *idata) {
+			odata[0] = 0;
+			for (int i = 1; i < n; i++) {
+				odata[i] = odata[i - 1] + idata[i - 1];
+			}
+		}
+
+
 
         /**
          * CPU stream compaction without using the scan function.
@@ -30,9 +53,18 @@ namespace StreamCompaction {
          */
         int compactWithoutScan(int n, int *odata, const int *idata) {
 	        timer().startCpuTimer();
-            // TODO
+            
+			int  nRemains = 0;
+
+			for (int i = 0; i < n; i++) {
+				if (idata[i]) {
+					odata[nRemains++] = idata[i];
+				}
+			}
+
 	        timer().endCpuTimer();
-            return -1;
+			return nRemains;
+			
         }
 
         /**
@@ -42,9 +74,28 @@ namespace StreamCompaction {
          */
         int compactWithScan(int n, int *odata, const int *idata) {
 	        timer().startCpuTimer();
-	        // TODO
-	        timer().endCpuTimer();
-            return -1;
+			
+			int *temp = new int[n];
+			for (int i = 0; i < n; i++) {
+				temp[i] = (idata[i] != 0);
+			}
+			
+			int *temp_scan = new int[n];
+			scan_wo_timer(n, temp_scan, temp);
+	
+			int nRemains = 0;
+			
+			for (int i = 0; i < n; i++) {
+				if (temp[i]) {
+					odata[temp_scan[i]] = idata[i];
+					nRemains++;
+				}
+			}
+			
+			delete[] temp, temp_scan;
+			
+			timer().endCpuTimer();
+			return nRemains;
         }
     }
 }
