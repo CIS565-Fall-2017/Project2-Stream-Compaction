@@ -20,7 +20,7 @@ Optimal blocksize = 128
 
 Blocksizes from 32 to 1024 (exponentially) were tried on the implementations. The optimal blocksize values were 128 and 256.
 
-![](img/GraphComparisons.PNG)
+![](img/graph-comp.PNG)
 
 There wasn't a significant improvement in performance from Naive to Work-Efficient implementations until an array size of 2^16. This could be due to fewer calls to kernels in the Naive implementation. However, the Work-Efficient implementation is faster as the array size increases due to less computations.
 
@@ -28,8 +28,8 @@ Array size: 2^8
 
 Scan Test Results:
 
-![](img/ScanTests.PNG)
+![](img/scan-tests.PNG)
 
 Stream Compaction Test Results:
 
-![](img/CompactionTests.PNG)
+![](img/compaction-tests.PNG)
