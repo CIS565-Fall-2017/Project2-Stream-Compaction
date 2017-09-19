@@ -13,6 +13,8 @@
 #define FILENAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #define checkCUDAError(msg) checkCUDAErrorFn(msg, FILENAME, __LINE__)
 
+#define blockSize 128
+
 /**
  * Check for CUDA errors; print and exit if there was a problem.
  */
@@ -27,7 +29,7 @@ inline int ilog2(int x) {
 }
 
 inline int ilog2ceil(int x) {
-    return ilog2(x - 1) + 1;
+    return x == 1 ? 0 : ilog2(x - 1) + 1;
 }
 
 namespace StreamCompaction {
