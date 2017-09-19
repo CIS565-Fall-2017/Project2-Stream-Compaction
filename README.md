@@ -7,32 +7,55 @@ CUDA Stream Compaction
 * Tested on: Windows 10, i7-4870HQ @ 2.50GHz 16GB, GeForce GT 750M 2048MB (personal computer)
 
 
-
-
-
 ## Project Overview
 
-The goal of this project was to get an introduction to the Scan and Stream Compaction - algorithms that 
+The goal of this project was to get an introduction to the GPU stream compaction in CUDA. This algorithm is often used to quickly process large sets of data according to certain conditions - hence very useful in parallel programming. In this project, the stream compaction will remove zero's from an array of int's. 
 
-Four Implementations: 
+
+The following four versions of stream compaction were implemented:
+
 * CPU algorithm
 * Naive parallel algorithm 
 * Work-efficient algorithm 
 * Thrust-based algorithm
 
 
+The stream compaction algorithm breaks down into a scan function and a compat function. The scan function computes an exclusive prefix sum. The compact function maps an input array to an array of zero's and one's, scans it, and then uses scatter to produce the output. 
+
+The following descriptions dive a bit deeper into the different approaches:
+
+### CPU
+* `n - 1` adds for an array of length `n`
+
+### Naive Parallel
+
+
+### Work-Efficient
+
+
+### Thrust-Based
+
 
 ## Performance Analysis 
 
-Below is a graph that shows which would be the best block size to test on.
+### Block Comparison
+
+Below is a graph that shows which would be the best block size to test on. The times below are for the work-efficient algorithm, comparing 64 elements and 65536 elements.
 
 ![](images/blockcomparison.PNG)
+
+Based on the chart above, block size 128 on average, seems to be the most efficient. The rest of the analysis below will be using that block size.
+
+
+### Algorithm Comparison
+
+Below are charts showing tests across all 4 algorithms, both testing with power-of-two sized arrays and non-power-of-two sized arrays.
 
 
 ![](images/algorithmcomparison.PNG)
 
 
-![](images/blgorithmcomparisontable.PNG)
+![](images/algorithmcomparisontable.PNG)
 
 
 
