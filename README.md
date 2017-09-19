@@ -3,10 +3,15 @@ CUDA Stream Compaction
 
 **University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 2**
 
-* (TODO) YOUR NAME HERE
-* Tested on: (TODO) Windows 22, i7-2222 @ 2.22GHz 22GB, GTX 222 222MB (Moore 2222 Lab)
+* Anton Khabbaz
+* pennkey:akhabbaz
+* Tested on: Windows 10 surface book i7-6600u at 2.66 GHz with a GPU GTX 965M
+Personal computer
 
 ### (TODO: Your README)
+
+
+Here I implemented the efficient scan using contiguous threads.  This worked perfectly up to one block but beyond one block the code failed.   The issue was that threads beyond one block do not synchronize.
 
 Include analysis, etc. (Remember, this is public, so don't put
 anything here that you don't want to share with the world.)
