@@ -15,7 +15,7 @@
 #include <algorithm>
 #include "testing_helpers.hpp"
 
-int SIZE = 1 << 4; // feel free to change the size of array
+int SIZE = 1 << 20; // feel free to change the size of array
 int NPOT = SIZE - 3; // Non-Power-Of-Two
 
 StreamCompaction::Common::PerformanceTimer& timer();
@@ -225,6 +225,15 @@ int main(int argc, char* argv[]) {
 	expectedCount = count;
 	printArray(count, b, true);
 	printCmpLenResult(count, expectedCount, b, c);
+
+	memcpy(c, a, SIZE * sizeof(int));
+	std::sort(c, c + NPOT);
+	zeroArray(SIZE, b);
+	printDesc("radix sort, not-power-of-two");
+	StreamCompaction::Radix::sort(NPOT, b, a);
+	printElapsedTime(StreamCompaction::Radix::timer().getGpuElapsedTimeForPreviousOperation(), "(cuda Measured)");
+	printArray(NPOT, b, true);
+	printCmpLenResult(NPOT, NPOT, b, c);
 	
 
 	free(a);

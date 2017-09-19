@@ -5,7 +5,7 @@
 #include "cpu.h"
 #include "naive.h"
 
-#define BLOCKSIZE 512
+#define BLOCKSIZE 256
 #define SOLVE_BANK_CONFLICTS 1
 
 #if BLOCKSIZE > 1024
