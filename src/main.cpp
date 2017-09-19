@@ -11,9 +11,10 @@
 #include <stream_compaction/naive.h>
 #include <stream_compaction/efficient.h>
 #include <stream_compaction/thrust.h>
+#include <stream_compaction/RadixSort.h>
 #include "testing_helpers.hpp"
 
-const int SIZE = 1 << 8; // feel free to change the size of array
+const int SIZE = 2048; //1 << 8; // feel free to change the size of array
 const int NPOT = SIZE - 3; // Non-Power-Of-Two
 int a[SIZE], b[SIZE], c[SIZE];
 
@@ -59,6 +60,23 @@ int main(int argc, char* argv[]) {
     //printArray(SIZE, c, true);
     printCmpResult(NPOT, b, c);
 
+
+	///------------EC : navie Dynamic Shared Memo Test--------------------
+	zeroArray(SIZE, c);
+	printDesc("naive scan(Dynamic Share Memory), power-of-two");
+	StreamCompaction::Naive::scanDynamicShared(SIZE, c, a);
+	printElapsedTime(StreamCompaction::Naive::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
+	//printArray(SIZE, c, true);
+	printCmpResult(SIZE, b, c);
+
+	zeroArray(SIZE, c);
+	printDesc("naive scan(Dynamic Share Memory), non-power-of-two");
+	StreamCompaction::Naive::scanDynamicShared(NPOT, c, a);
+	printElapsedTime(StreamCompaction::Naive::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
+	//printArray(SIZE, c, true);
+	printCmpResult(NPOT, b, c);
+	///-------------------------------------------------------------------------
+
     zeroArray(SIZE, c);
     printDesc("work-efficient scan, power-of-two");
     StreamCompaction::Efficient::scan(SIZE, c, a);
@@ -72,6 +90,24 @@ int main(int argc, char* argv[]) {
     printElapsedTime(StreamCompaction::Efficient::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
     //printArray(NPOT, c, true);
     printCmpResult(NPOT, b, c);
+
+	///------------EC : efficient Dynamic Shared Memo Test--------------------
+	zeroArray(SIZE, c);
+	printDesc("work-efficient scan(Dynamic Share Memory), power-of-two");
+	StreamCompaction::Efficient::scanDynamicShared(SIZE, c, a);
+	printElapsedTime(StreamCompaction::Efficient::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
+	//printArray(SIZE, c, true);
+	printCmpResult(SIZE, b, c);
+
+	zeroArray(SIZE, c);
+	printDesc("work-efficient scan(Dynamic Share Memory), non-power-of-two");
+	StreamCompaction::Efficient::scanDynamicShared(NPOT, c, a);
+	printElapsedTime(StreamCompaction::Efficient::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
+	//printArray(SIZE, c, true);
+	printCmpResult(NPOT, b, c);
+	///-------------------------------------------------------------------------
+
+
 
     zeroArray(SIZE, c);
     printDesc("thrust scan, power-of-two");
@@ -138,6 +174,37 @@ int main(int argc, char* argv[]) {
     printElapsedTime(StreamCompaction::Efficient::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
     //printArray(count, c, true);
     printCmpLenResult(count, expectedNPOT, b, c);
+
+
+	printf("\n");
+	printf("*****************************\n");
+	printf("** Radix Sort TEST **\n");
+	printf("*****************************\n");
+
+	int numberCount = SIZE; // should smaller than SIZE (256 here)
+
+	// These two values must be compatible
+	int maxValue = 16;
+	int maxBits = 4;
+
+	genArray(numberCount, a, maxValue);
+	printf("Randomly Generate Array with maxmium 16.\n");
+	printArray(numberCount, a, true);
+
+	zeroArray(numberCount, b);
+	StreamCompaction::CPU::quickSort(numberCount, b, a);
+	printf("qosrt Result : \n");
+	printArray(numberCount, b, true);
+	printElapsedTime(StreamCompaction::CPU::timer().getCpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
+
+	zeroArray(numberCount, c);
+	RadixSort::sort(numberCount, maxBits, c, a);
+	printf("Radix sort Result : \n");
+	printArray(numberCount, c, true);
+	printElapsedTime(RadixSort::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
+
+	printf("sort result comparison between qsort and radix sort : \n");
+	printCmpLenResult(numberCount, numberCount, b, c);
 
     system("pause"); // stop Win32 console from closing on exit
 }

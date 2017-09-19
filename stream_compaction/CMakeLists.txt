@@ -9,6 +9,8 @@ set(SOURCE_FILES
     "efficient.cu"
     "thrust.h"
     "thrust.cu"
+	"RadixSort.h"
+	"RadixSort.cu"
     )
 
 cuda_add_library(stream_compaction
