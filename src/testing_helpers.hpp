@@ -65,6 +65,6 @@ void printArray(int n, int *a, bool abridged = false) {
 
 template<typename T>
 void printElapsedTime(T time, std::string note = "")
-{
-	std::cout << "   elapsed time: " << time << "ms    " << note << std::endl;
+{ 
+  std::cout << "   elapsed time: " << time << "ms    " << note << std::endl; 
 }
