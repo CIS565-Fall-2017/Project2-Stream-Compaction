@@ -29,7 +29,7 @@ A same trend can be seen in stream compaction. Both, CPU and GPU methods, take a
 
 ###### Optimizing work-efficient GPU scan
 
-Much of the performance gain for work-efficient GPU algorithm is due to the fact that the number of threads at each level reduces to half, so more the number of levels, faster it is compared to naive GPU scan and CPU scan. Mathematically, for array of size N, there are log<sub>2</sub>N levels. So, there would be N*log<sub>2</sub>N threads without this optimization. By not creating extra threads, we will only create threads equal to the number of leaves at each level of the binary tree, which is equal to 2<sup>log<sub>2</sub>N+1</sup>. Thus the number of threads required to compute the result is much less for very large array sizes.
+Much of the performance gain for work-efficient GPU algorithm is due to the fact that the number of threads at each level reduces to half, so more the number of levels, faster it is compared to naive GPU scan and CPU scan. Mathematically, for array of size N, there are log<sub>2</sub>N levels. So, there would be N*log<sub>2</sub>N threads without this optimization. By not creating extra threads, we will only create threads equal to the number of nodes at each level of the binary tree, which is equal to 2<sup>log<sub>2</sub>N+1</sup>. Thus the number of threads required to compute the result is much less for very large array sizes.
 
 ###### Performance Bottlenecks
 
