@@ -37,13 +37,21 @@ The naive parallel implementation found in the solution file is essentially a [K
 
 ### Work Efficient GPU Scan
 
+In an attempt to alleviate the work-efficiency issues in the naive implementation, we try minimizing the amount of work done by using a reduction tree algorithm. This algorithm is split into two phases, an upward sweep and a downward sweep.
+
 ![](img/readme/UpSweep.jpg)
 
-_(UpSweep)_
+#### UpSweep
+
+In the upward sweep, threads collaborate to generate partial sums across the input array while traversing "upwards" in a tree like fashion. By the end of this phase, we have partial sums leading up to the final element, which contains a sum of all values in the input array.
 
 ![](img/readme/DownSweep.jpg)
 
-_(DownSweep)_
+#### DownSweep
+
+After generating partial sums, we can begin the downsweep phase. We initially replace the last element in the array with a zero (in order to achieve an exclusive scan). We then traverse back down the tree, replacing the left child of each element with the current value and the right child with the sum of the old left child and the current value.
+
+The combination of UpSweep and DownSweep give us an exclusive scan which runs log N times for UpSweep and another log N times for DownSweep. It does O(N) work in the process.
 
 ### Thrust GPU Scan
 
@@ -53,18 +61,17 @@ Finally, in order to have a parallel benchmark to compare to, we use Thrust's im
 
 All of the measurements in the performance analysis EXCLUDE memory management (copy, allocations, free) operations whenever they are not necessary for the execution of the algorithm by itself.
 
-
 ![](img/readme/ScanImplementation1.png)
 
-_(Scan Data Zoomed In to a lower Range)_
+#### Scan Data Zoomed In to a lower Range
 
 ![](img/readme/ScanImplementation2.png)
 
-_(Overall Scan Data)_
+#### Overall Scan Data
 
 ![](img/readme/ScanImplementationsData.png)
 
-_(Scan Data values)_
+#### Scan Data values
 
 ### Test Results
 ```
