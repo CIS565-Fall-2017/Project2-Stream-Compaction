@@ -215,3 +215,5 @@ Non-Power of 2 size:   4194301
    elapsed time: 5.97152ms    (CUDA Measured)
     passed
 ```
+
+Images taken from GPU Gems 3, Chapter 39.
