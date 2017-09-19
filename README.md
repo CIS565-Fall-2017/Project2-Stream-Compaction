@@ -7,16 +7,15 @@ CUDA Stream Compaction
 * Tested on GeForce GTX 1070
 
 ### Description
-#### Scan
-#### Stream Compaction
-#### Radix SOrt
+#### * Scan
+#### * Stream Compaction
+#### * Radix Sort
 
-### Output
+### Test Output
+
+#### * Scan
 
 ```
-****************
-** SCAN TESTS **
-****************
     [  15  26  19   6  48  18   4  40   8  13  32  26  32  37  14   0 ]
 ==== cpu scan, power-of-two ====
    elapsed time: 0.000277ms    (std::chrono Measured)
@@ -49,10 +48,11 @@ CUDA Stream Compaction
    elapsed time: 0.014368ms    (CUDA Measured)
     [   0  15  41  60  66 114 132 136 176 184 197 229 255 ]
     passed
+```
 
-*****************************
-** STREAM COMPACTION TESTS **
-*****************************
+#### * Stream Compaction
+
+```
     [   3   1   1   1   2   1   1   0   3   1   0   2   3   0   1   0 ]
 ==== cpu compact without scan, power-of-two ====
    elapsed time: 0.000277ms    (std::chrono Measured)
@@ -74,10 +74,11 @@ CUDA Stream Compaction
    elapsed time: 0.099584ms    (CUDA Measured)
     [   3   1   1   1   2   1   1   3   1   2   3 ]
     passed
+```
 
-*****************************
-** RADIX SORT TESTS **
-*****************************
+#### * Radix Sort
+
+```
     [  21  23  29  15  10  21  29  36  13  17  36  14  41  12  31   0 ]
 ==== cpu sort, power-of-two ====
    elapsed time: 0.000554ms    (std::chrono Measured)
