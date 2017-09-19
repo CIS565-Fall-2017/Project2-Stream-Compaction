@@ -2,6 +2,7 @@
 #include "cpu.h"
 
 #include "common.h"
+#include <vector>
 
 namespace StreamCompaction {
     namespace CPU {
@@ -19,7 +20,10 @@ namespace StreamCompaction {
          */
         void scan(int n, int *odata, const int *idata) {
 	        timer().startCpuTimer();
-            // TODO
+			odata[0] = 0;
+			for (int i = 1; i < n; i++) {
+				odata[i] = odata[i - 1] + idata[i - 1];
+			}
 	        timer().endCpuTimer();
         }
 
@@ -30,9 +34,13 @@ namespace StreamCompaction {
          */
         int compactWithoutScan(int n, int *odata, const int *idata) {
 	        timer().startCpuTimer();
-            // TODO
+			int outIdx = 0;
+			for (int i = 0; i < n; i++) {
+				int elem = idata[i];
+				if (elem != 0) odata[outIdx++] = elem;
+			}
 	        timer().endCpuTimer();
-            return -1;
+            return outIdx;
         }
 
         /**
@@ -42,9 +50,27 @@ namespace StreamCompaction {
          */
         int compactWithScan(int n, int *odata, const int *idata) {
 	        timer().startCpuTimer();
-	        // TODO
+			int* idxMap = new int[n];
+			for (int i = 0; i < n; i++) {
+				if (idata[i] != 0) idxMap[i] = 1;
+				else idxMap[i] = 0;
+			}
+			int* idxScan = new int[n];
+			for (int i = 0; i < n; i++) idxScan[i] = 0;
+			for (int i = 1; i < n; i++) {
+				idxScan[i] = idxScan[i - 1] + idxMap[i - 1];
+			}
+			int size = idxScan[n - 1] + idxMap[n - 1];
+			int outIdx = 0;
+			for (int i = 0; i < n; i++) {
+				if (idxMap[i]) {
+					odata[outIdx++] = idata[i];
+				}
+			}
 	        timer().endCpuTimer();
-            return -1;
+			delete[] idxMap;
+			delete[] idxScan;
+            return size;
         }
     }
 }
