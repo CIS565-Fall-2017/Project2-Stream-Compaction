@@ -148,4 +148,8 @@ int main(int argc, char* argv[]) {
     printCmpLenResult(count, expectedNPOT, b, c);
 
     system("pause"); // stop Win32 console from closing on exit
+
+	//Copying this b/c aparently it stops from my exe window from crashing on the first go
+	//Not sure why
+	system("pause"); // stop Win32 console from closing on exit
 }
