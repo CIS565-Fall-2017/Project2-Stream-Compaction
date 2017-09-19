@@ -52,7 +52,7 @@ namespace StreamCompaction {
          * Performs prefix-sum (aka scan) on idata, storing the result into odata.
          */
         void scan(int n, int *odata, const int *idata) {
-            timer().startGpuTimer();
+            
 			dim3 threadsPerBlock(128);
 			int blockSize = 128;
 			
@@ -74,6 +74,7 @@ namespace StreamCompaction {
 
 			cudaMemcpy(dev_odata, idata, sizeof(int) * n, cudaMemcpyHostToDevice);
 			checkCUDAErrorWithLine("memcpy failed!");
+			timer().startGpuTimer();
 			//UPSWEEP
 			log = ilog2ceil(arr_size);
 			for (int d = 0; d < log; d++) {
@@ -88,9 +89,9 @@ namespace StreamCompaction {
 				dim3 fullBlocksPerGrid((off_n + blockSize - 1) / blockSize);
 				kernDownSweepIteration << <fullBlocksPerGrid, blockSize >> > (arr_size, d, dev_odata);
 			}
+			timer().endGpuTimer();
 			cudaMemcpy(odata, dev_odata, sizeof(int) * n, cudaMemcpyDeviceToHost);
 			checkCUDAErrorWithLine("memcpy failed!");
-            timer().endGpuTimer();
 			cudaFree(dev_odata);
 			cudaFree(dev_shiftdata);
         }

@@ -71,8 +71,6 @@ namespace StreamCompaction {
 					count++;
 				}
 			}
-			
-	        // TODO
 	        //timer().endCpuTimer();
 			delete[] tempArray;
 			delete[] scanArray;
