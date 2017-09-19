@@ -22,7 +22,7 @@ Blocksizes from 32 to 1024 (exponentially) were tried on the implementations. Th
 
 ![](img/graph-comp.PNG)
 
-There wasn't a significant improvement in performance from Naive to Work-Efficient implementations until an array size of 2^16. This could be due to fewer calls to kernels in the Naive implementation. However, the Work-Efficient implementation is faster as the array size increases due to less computations.
+There wasn't a significant improvement in performance from Naive to Work-Efficient implementations until an array size of 2^16. This could be due to fewer calls to kernels in the Naive implementation. However, the Work-Efficient implementation is faster as the array size increases due to less computations. Both of the GPU implementations start to plateau as the array size increases while the CPU implementation's time increases exponentially. However, with the array sizes I experimented with, the CPU implementation is always significantly faster than the Naive and Work-Efficient implementations. 
 
 Array size: 2^8
 
