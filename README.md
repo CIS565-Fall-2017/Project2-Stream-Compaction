@@ -36,7 +36,7 @@ This follows the general compaction algorithm. During the scatter step, I kept a
 With this approach, additional buffers are needed to avoid race conditions. This requires `log2n` iterations over the array.
 
 It follows the algorithm:
-![](img/naivealgorithm.png)
+![](img/naivealgorithm.PNG)
 
 ![](img/naivescan.jpg)
 
@@ -48,7 +48,7 @@ The other difference in this compaction algorithm is in the scan step which requ
 The best way to think how the sweeps work is to think that we're working on a binary tree. 
 
 #### Up-Sweep
-Here we build the "tree" from the bottom up. When we get to the root, we reset its value to 0. 
+Here we build the "tree" from the bottom up. When we get to the root, we reset its value to 0 (seen in the downsweep image)
 
 ![](img/upsweep.jpg)
 
@@ -63,23 +63,23 @@ In the **down-sweep** phase, we traverse down from the root. At each level `d` w
 Here are some results of increasing the array size with each of the scan implementations. Each of the following tests were conducted with blocksize 128.
 
 ### CPU Scan 
-![](img/cpu.png)
+![](img/cpu.PNG)
 
 ### Naive GPU Scan
-![](img/naive.png)
+![](img/naive.PNG)
 
 ### Work-Efficient GPU Scan 
-![](img/efficient.png)
+![](img/efficient.PNG)
 
 ### Thrust's Implementation
 Thrust is a parallel algorithms library which also has a scan implementation. 
 
 I had to run an extra scan before the timed portion to get a faster performance. Because of this, I'm not so sure the performance times are accurate.
 
-![](img/thrust.png)
+![](img/thrust.PNG)
 
 ### Overall Comparison 
-![](img/implementation_data.png)
+![](img/implementation_data.PNG)
 
 My initial assumptions were that the work-efficient scan would perform better than the naive scan. 
 
@@ -94,6 +94,6 @@ I think that the overhead in time comes from the constant memory access. Somethi
 ## Result
 Here is the final result from the terminal: (Blocksize: 128, Array Size: 256)
 
-![](img/results.png)
+![](img/results.PNG)
 
 Images taken from GPU Gems 3, Chapter 39 and CIS565 Lecture.
