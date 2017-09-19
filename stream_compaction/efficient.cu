@@ -3,7 +3,7 @@
 #include "common.h"
 #include "efficient.h"
 
-#define blockSize 128
+#define blockSize 32
 
 namespace StreamCompaction {
     namespace Efficient {
@@ -41,10 +41,18 @@ namespace StreamCompaction {
 			int leftIndex = rightIndex - incrementLength;
 
 			int tmp = data[leftIndex];
-			int dataFromRight = (index == 0 && d == 0) ? 0 : data[rightIndex];
+			int dataFromRight = data[rightIndex];
 
 			data[leftIndex] = dataFromRight;
 			data[rightIndex] = dataFromRight + tmp;
+		}
+
+		__global__ void kernReplaceIndexWithZero(int n, int *data) {
+			int index = threadIdx.x + blockDim.x * blockIdx.x;
+			if (index != 0) {
+				return;
+			}
+			data[n] = 0;
 		}
 
         /**
@@ -61,19 +69,18 @@ namespace StreamCompaction {
 			cudaMemcpy(dev_data, idata, n * sizeof(int), cudaMemcpyHostToDevice);
 			checkCUDAError("cudaMemcpy failed!");
 
-			//TODO: Check if changing number of threads affects performance time. 
-			// In theory, if threads are more or less free, it shouldn't.
-			// That said, it still takes 4 cycles to dispatch a warp so...
-
-			dim3 fullBlocks((ceil + blockSize - 1) / blockSize);
             timer().startGpuTimer();
 			int numThreadsToDoWork = ceil;
 			for (int d = 0; d < log; d++) {
 				numThreadsToDoWork /= 2;
+				dim3 fullBlocks((numThreadsToDoWork + blockSize - 1) / blockSize);
 				kernComputeUpSweepIteration << <fullBlocks, blockSize >> > (numThreadsToDoWork, d, dev_data);
 			}
+
+			kernReplaceIndexWithZero << <1, 32 >> > (ceil - 1, dev_data);
 			
 			for (int d = 0; d < log; d++) {
+				dim3 fullBlocks((numThreadsToDoWork + blockSize - 1) / blockSize);
 				kernComputeDownSweepIteration << <fullBlocks, blockSize >> > (numThreadsToDoWork, d, ceil, dev_data);
 				numThreadsToDoWork *= 2;
 			}
@@ -84,26 +91,20 @@ namespace StreamCompaction {
 			cudaFree(dev_data);
         }
 
-		/**
-		Helper function to run scan with pre-allocated arrays, already padded with zeroes, 
-		and without freeing the data to avoid having to copy back and forth.
-		*/
-
 		void scanInPlace(int n, int *dev_data) {
 			int log = ilog2ceil(n);
 			int ceil = (int)powf(2.0f, log);
-			//TODO: Check if changing number of threads affects performance time. 
-			// In theory, if threads are more or less free, it shouldn't.
-			// That said, it still takes 4 cycles to dispatch a warp so...
-
-			dim3 fullBlocks((ceil + blockSize - 1) / blockSize);
 			int numThreadsToDoWork = ceil;
 			for (int d = 0; d < log; d++) {
 				numThreadsToDoWork /= 2;
+				dim3 fullBlocks((numThreadsToDoWork + blockSize - 1) / blockSize);
 				kernComputeUpSweepIteration << <fullBlocks, blockSize >> > (numThreadsToDoWork, d, dev_data);
 			}
 
+			kernReplaceIndexWithZero << <1, 32 >> > (ceil - 1, dev_data);
+
 			for (int d = 0; d < log; d++) {
+				dim3 fullBlocks((numThreadsToDoWork + blockSize - 1) / blockSize);
 				kernComputeDownSweepIteration << <fullBlocks, blockSize >> > (numThreadsToDoWork, d, ceil, dev_data);
 				numThreadsToDoWork *= 2;
 			}
