@@ -11,92 +11,104 @@ Tested on GeForce GTX 1070
 #### Stream Compaction
 #### Radix Sort
 
-### Test Output
+### Test Program Output
 
 #### Scan
 
 ```
-    [  15  26  19   6  48  18   4  40   8  13  32  26  32  37  14   0 ]
+ [   0  31  19  29  27   6  28  18  48  16  43   0   5  49  24   0 ]
 ==== cpu scan, power-of-two ====
-   elapsed time: 0.000277ms    (std::chrono Measured)
-    [   0  15  41  60  66 114 132 136 176 184 197 229 255 287 324 338 ]
+   elapsed time: 0ms    (std::chrono Measured)
+    [   0   0  31  50  79 106 112 140 158 206 222 265 265 270 319 343 ]
 ==== cpu scan, non-power-of-two ====
-   elapsed time: 0.000277ms    (std::chrono Measured)
-    [   0  15  41  60  66 114 132 136 176 184 197 229 255 ]
+   elapsed time: 0ms    (std::chrono Measured)
+    [   0   0  31  50  79 106 112 140 158 206 222 265 265 ]
     passed
 ==== naive scan, power-of-two ====
-   elapsed time: 0.012288ms    (CUDA Measured)
-    [   0  15  41  60  66 114 132 136 176 184 197 229 255 287 324 338 ]
+   elapsed time: 0.011904ms    (CUDA Measured)
+    [   0   0  31  50  79 106 112 140 158 206 222 265 265 270 319 343 ]
     passed
 ==== naive scan, non-power-of-two ====
-   elapsed time: 0.010496ms    (CUDA Measured)
-    [   0  15  41  60  66 114 132 136 176 184 197 229 255 ]
+   elapsed time: 0.0112ms    (CUDA Measured)
+    [   0   0  31  50  79 106 112 140 158 206 222 265 265 ]
     passed
 ==== work-efficient scan, power-of-two ====
-   elapsed time: 0.017664ms    (CUDA Measured)
-    [   0  15  41  60  66 114 132 136 176 184 197 229 255 287 324 338 ]
+   elapsed time: 0.018048ms    (CUDA Measured)
+    [   0   0  31  50  79 106 112 140 158 206 222 265 265 270 319 343 ]
     passed
 ==== work-efficient scan, non-power-of-two ====
-   elapsed time: 0.017472ms    (CUDA Measured)
-    [   0  15  41  60  66 114 132 136 176 184 197 229 255 ]
+   elapsed time: 0.017888ms    (CUDA Measured)
+    [   0   0  31  50  79 106 112 140 158 206 222 265 265 ]
     passed
 ==== thrust scan, power-of-two ====
-   elapsed time: 10.5801ms    (CUDA Measured)
-    [   0  15  41  60  66 114 132 136 176 184 197 229 255 287 324 338 ]
+   elapsed time: 10.8968ms    (CUDA Measured)
+    [   0   0  31  50  79 106 112 140 158 206 222 265 265 270 319 343 ]
     passed
 ==== thrust scan, non-power-of-two ====
-   elapsed time: 0.014368ms    (CUDA Measured)
-    [   0  15  41  60  66 114 132 136 176 184 197 229 255 ]
+   elapsed time: 0.013568ms    (CUDA Measured)
+    [   0   0  31  50  79 106 112 140 158 206 222 265 265 ]
     passed
 ```
 
 #### Stream Compaction
 
 ```
-    [   3   1   1   1   2   1   1   0   3   1   0   2   3   0   1   0 ]
+	[   0   3   3   3   1   0   0   0   2   2   3   2   1   3   2   0 ]
 ==== cpu compact without scan, power-of-two ====
    elapsed time: 0.000277ms    (std::chrono Measured)
-    [   3   1   1   1   2   1   1   3   1   2   3   1 ]
+    [   3   3   3   1   2   2   3   2   1   3   2 ]
     passed
 ==== cpu compact without scan, non-power-of-two ====
    elapsed time: 0.000277ms    (std::chrono Measured)
-    [   3   1   1   1   2   1   1   3   1   2   3 ]
+    [   3   3   3   1   2   2   3   2   1 ]
     passed
 ==== cpu compact with scan ====
-   elapsed time: 0.001387ms    (std::chrono Measured)
-    [   3   1   1   1   2   1   1   3   1   2   3   1 ]
+   elapsed time: 0.000278ms    (std::chrono Measured)
+    [   3   3   3   1   2   2   3   2   1   3   2 ]
     passed
 ==== work-efficient compact, power-of-two ====
-   elapsed time: 0.216224ms    (CUDA Measured)
-    [   3   1   1   1   2   1   1   3   1   2   3   1 ]
+   elapsed time: 0.217408ms    (CUDA Measured)
+    [   3   3   3   1   2   2   3   2   1   3   2 ]
     passed
 ==== work-efficient compact, non-power-of-two ====
-   elapsed time: 0.099584ms    (CUDA Measured)
-    [   3   1   1   1   2   1   1   3   1   2   3 ]
+   elapsed time: 0.201632ms    (CUDA Measured)
+    [   3   3   3   1   2   2   3   2   1 ]
     passed
 ```
 
 #### Radix Sort
 
 ```
-    [  21  23  29  15  10  21  29  36  13  17  36  14  41  12  31   0 ]
+    [   8  15   7   7  13  12  12   8  14  14   3   2   1   3  10   0 ]
 ==== cpu sort, power-of-two ====
-   elapsed time: 0.000554ms    (std::chrono Measured)
-    [   0  10  12  13  14  15  17  21  21  23  29  29  31  36  36  41 ]
+   elapsed time: 0.00111ms    (std::chrono Measured)
+    [   0   1   2   3   3   7   7   8   8  10  12  12  13  14  14  15 ]
 ==== cpu sort, non-power-of-two ====
    elapsed time: 0.000555ms    (std::chrono Measured)
-    [  10  13  14  15  17  21  21  23  29  29  36  36  41 ]
+    [   1   2   3   7   7   8   8  12  12  13  14  14  15 ]
 ==== radix sort, power-of-two ====
-   elapsed time: 0.099584ms    (CUDA Measured)
-    [   0  10  12  13  14  15  17  21  21  23  29  29  31  36  36  41 ]
+   elapsed time: 0.784896ms    (CUDA Measured)
+    [   0   1   2   3   3   7   7   8   8  10  12  12  13  14  14  15 ]
     passed
 ==== radix sort, non-power-of-two ====
-   elapsed time: 0.099584ms    (CUDA Measured)
-    [  10  13  14  15  17  21  21  23  29  29  36  36  41 ]
+   elapsed time: 0.656448ms    (CUDA Measured)
+    [   1   2   3   7   7   8   8  12  12  13  14  14  15 ]
     passed
  ```
 
 ### Performance Analysis
+
+#### Scan
+
+![](img/scan20k.png) ![](img/scan4k.png)
+
+#### Stream Compaction
+
+![](img/compact20k.png) ![](img/compact4k.png)
+
+#### Radix Sort
+
+![](img/radix20k.png) ![](img/radix4k.png)
 
 ### Q&A
 
