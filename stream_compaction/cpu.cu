@@ -6,6 +6,7 @@
 namespace StreamCompaction {
     namespace CPU {
         using StreamCompaction::Common::PerformanceTimer;
+        bool compactTest = false;
         PerformanceTimer& timer()
         {
 	        static PerformanceTimer timer;
@@ -18,9 +19,11 @@ namespace StreamCompaction {
          * (Optional) For better understanding before starting moving to GPU, you can simulate your GPU scan in this function first.
          */
         void scan(int n, int *odata, const int *idata) {
-	        timer().startCpuTimer();
-            // TODO
-	        timer().endCpuTimer();
+          if (!compactTest) timer().startCpuTimer();
+          odata[0] = 0;
+          for (size_t k = 1; k < n; ++k)
+            odata[k] = odata[k - 1] + idata[k-1];
+          if (!compactTest) timer().endCpuTimer();
         }
 
         /**
@@ -30,9 +33,12 @@ namespace StreamCompaction {
          */
         int compactWithoutScan(int n, int *odata, const int *idata) {
 	        timer().startCpuTimer();
-            // TODO
+          int odataIdx = 0;
+          for (size_t k = 0; k < n; ++k)
+            if (idata[k] != 0)
+              odata[odataIdx++] = idata[k];
 	        timer().endCpuTimer();
-            return -1;
+          return odataIdx;
         }
 
         /**
@@ -41,10 +47,33 @@ namespace StreamCompaction {
          * @returns the number of elements remaining after compaction.
          */
         int compactWithScan(int n, int *odata, const int *idata) {
+          compactTest = true;
+          int* tdata = new int[n];
+          int* sdata = new int[n];
+
 	        timer().startCpuTimer();
-	        // TODO
+
+          for (size_t k = 0; k < n; ++k)
+            if (idata[k] != 0)
+              tdata[k] = 1;
+            else
+              tdata[k] = 0;
+
+          scan(n, sdata, tdata);
+
+          int sdataLastIdx = 0;
+          for (size_t k = 0; k < n; ++k) {
+            if (tdata[k] == 1) {
+              odata[sdata[k]] = idata[k];
+              sdataLastIdx = sdata[k];
+            }
+          }
+
 	        timer().endCpuTimer();
-            return -1;
+
+          compactTest = false;
+          delete[] tdata, sdata;
+          return sdataLastIdx+1;
         }
     }
 }
