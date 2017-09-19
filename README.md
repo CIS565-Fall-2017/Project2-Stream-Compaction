@@ -3,17 +3,17 @@ CUDA Stream Compaction
 
 **University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 2**
 
-* Sarah Forcier
-* Tested on GeForce GTX 1070
+Sarah Forcier
+Tested on GeForce GTX 1070
 
-### Description
-#### * Scan
-#### * Stream Compaction
-#### * Radix Sort
+### Algorithm Descriptions
+#### Scan
+#### Stream Compaction
+#### Radix Sort
 
 ### Test Output
 
-#### * Scan
+#### Scan
 
 ```
     [  15  26  19   6  48  18   4  40   8  13  32  26  32  37  14   0 ]
@@ -50,7 +50,7 @@ CUDA Stream Compaction
     passed
 ```
 
-#### * Stream Compaction
+#### Stream Compaction
 
 ```
     [   3   1   1   1   2   1   1   0   3   1   0   2   3   0   1   0 ]
@@ -76,7 +76,7 @@ CUDA Stream Compaction
     passed
 ```
 
-#### * Radix Sort
+#### Radix Sort
 
 ```
     [  21  23  29  15  10  21  29  36  13  17  36  14  41  12  31   0 ]

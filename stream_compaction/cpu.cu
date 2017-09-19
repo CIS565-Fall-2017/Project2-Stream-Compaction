@@ -62,12 +62,13 @@ namespace StreamCompaction {
          * @returns the number of elements remaining after compaction.
          */
         int compactWithScan(int n, int *odata, const int *idata) {
-	        timer().startCpuTimer();
+	        
 	        // TODO
 
 			int* temp = new int[n + 1];
 			temp[n] = 0;
 			int num = 0;
+			timer().startCpuTimer();
 			// compute temporary array
 			for (int i = 0; i < n; ++i) {
 				temp[i] = (idata[i] == 0) ? 0 : 1;
@@ -87,9 +88,8 @@ namespace StreamCompaction {
 					num++;
 				}
 			}
-
+			timer().endCpuTimer();
 			delete[] temp;
-	        timer().endCpuTimer();
             return num;
         }
 
@@ -135,9 +135,10 @@ namespace StreamCompaction {
 			for (int i = 0; i < n; ++i) {
 				odata[i] = idata[i];
 			}
-				
-			timer().startCpuTimer();
+			
 			int max = findMax(n, idata);
+
+			timer().startCpuTimer();
 			bool eo = true;
 			for (int d = 1; max / d > 0; d *= 10) {
 				countSort(n, d, temp, odata);

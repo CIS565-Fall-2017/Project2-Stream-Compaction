@@ -62,7 +62,7 @@ namespace StreamCompaction {
 		{
 			dim3 blocksPerGrid((n + blockSize - 1) / blockSize);
 
-			int pow2n = 1 << ilog2ceil(n + 1);
+			int pow2n = 1 << ilog2ceil(n);
 
 			// Step 1: compute e array
 			kernMapToBoolean<<<blocksPerGrid, blockSize>>>(pow2n, n, k, f_arr, dev_in);
@@ -78,7 +78,7 @@ namespace StreamCompaction {
 			cudaMemcpy(last_e, e_arr + n - 1, sizeof(int), cudaMemcpyDeviceToHost);
 			checkCUDAError("last_e cudaMemcpyDeviceToHost failed!");
 
-			cudaMemcpy(last_f, f_arr + n - 1 , sizeof(int), cudaMemcpyDeviceToHost);
+			cudaMemcpy(last_f, f_arr + n - 1, sizeof(int), cudaMemcpyDeviceToHost);
 			checkCUDAError("last_f cudaMemcpyDeviceToHost failed!");
 
 			int totalFalses = *last_e + *last_f;
@@ -103,7 +103,7 @@ namespace StreamCompaction {
          * @param idata  The array of elements to compact.
          * @returns      The number of elements remaining after compaction.
          */
-        void sort(int n, int *odata, const int *idata) 
+        void sort(int n, int d, int *odata, const int *idata) 
 		{
 			// TODO
 			int *e_arr;
@@ -132,15 +132,15 @@ namespace StreamCompaction {
 			checkCUDAError("cudaMemcpy dev_in failed!");
 
 			timer().startGpuTimer();
-			for (int k = 0; k < 8 * sizeof(int); ++k) {
+			for (int k = 0; k < d; ++k) {
 				sort_implementation(n, k, last_e, last_f, e_arr, f_arr, t_arr, dev_in);
-
-				cudaMemcpy(dev_in, f_arr, n * sizeof(int), cudaMemcpyDeviceToDevice);
-				checkCUDAError("cudaMemcpyDeviceToDevice failed!");
+				std::swap(dev_in, f_arr);
+				/*cudaMemcpy(dev_in, f_arr, n * sizeof(int), cudaMemcpyDeviceToDevice);
+				checkCUDAError("cudaMemcpyDeviceToDevice failed!");*/
 			}
 			timer().endGpuTimer();
 
-			cudaMemcpy(odata, f_arr, n * sizeof(int), cudaMemcpyDeviceToHost);
+			cudaMemcpy(odata, dev_in, n * sizeof(int), cudaMemcpyDeviceToHost);
 			checkCUDAError("cudaMemcpyDeviceToHost failed!");
 
 			free(last_e);
