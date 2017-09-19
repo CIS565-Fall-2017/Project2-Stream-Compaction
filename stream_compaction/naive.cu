@@ -51,7 +51,7 @@ namespace StreamCompaction {
 			checkCUDAError("Malloc for input device failed\n");
 
 			cudaMemcpy(idev, idata, n * sizeof(int), cudaMemcpyHostToDevice);
-			checkCUDAError("cudaMemcpy for odataSwap failed");
+			checkCUDAError("cudaMemcpy for input device failed\n");
 
 			dim3 fullBlocksPerGrid((n + blockSize - 1) / blockSize);
 
@@ -68,7 +68,7 @@ namespace StreamCompaction {
             timer().endGpuTimer();
 
 			cudaMemcpy(odata, odev, n * sizeof(int), cudaMemcpyDeviceToHost);
-			checkCUDAError("cudaMemcpy for odataSwap failed");
+			checkCUDAError("cudaMemcpy for output device failed\n");
 
 			cudaFree(odev);
 			cudaFree(idev);
