@@ -18,7 +18,7 @@ namespace StreamCompaction {
     int *dev_indices;
     int *dev_idata;
 
-    const int BLOCK_SIZE = 128;
+    const int BLOCK_SIZE = 64;
 
     __global__ void kernUpSweep(int n, int width, int *data)
     {
@@ -68,7 +68,7 @@ namespace StreamCompaction {
 
       cudaMemcpy(dev_data, idata, n * sizeof(int), cudaMemcpyHostToDevice);
 
-      //timer().startGpuTimer();
+      timer().startGpuTimer();
 
       for (d = 0; d <= numIterations; d++)
       {
@@ -91,7 +91,7 @@ namespace StreamCompaction {
         kernDownSweep << <numBlocks, BLOCK_SIZE >> > (numThreads, width, dev_data);
       }
 
-      //timer().endGpuTimer();
+      timer().endGpuTimer();
 
       cudaMemcpy(odata, dev_data, n * sizeof(int), cudaMemcpyDeviceToHost);
 
@@ -118,7 +118,7 @@ namespace StreamCompaction {
 
       cudaMemcpy(dev_idata, idata, n * sizeof(int), cudaMemcpyHostToDevice);
 
-      timer().startGpuTimer();
+      //timer().startGpuTimer();
 
       Common::kernMapToBoolean << <numBlocks, BLOCK_SIZE>> > (n, dev_bools, dev_idata);
       cudaMemcpy(odata, dev_bools, n * sizeof(int), cudaMemcpyDeviceToHost);
@@ -132,7 +132,7 @@ namespace StreamCompaction {
       cudaMemcpy(dev_indices, odata, n * sizeof(int), cudaMemcpyHostToDevice);
       Common::kernScatter << <numBlocks, BLOCK_SIZE >> > (n, dev_odata, dev_idata, dev_bools, dev_indices);
 
-      timer().endGpuTimer();
+      //timer().endGpuTimer();
 
       cudaMemcpy(odata, dev_odata, n * sizeof(int), cudaMemcpyDeviceToHost);
 

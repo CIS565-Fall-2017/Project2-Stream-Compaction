@@ -16,7 +16,7 @@ namespace StreamCompaction {
     int *dev_output1;
     int *dev_output2;
 
-    const int BLOCK_SIZE = 128;
+    const int BLOCK_SIZE = 64;
 
     __global__ void kernScan(int n, int offset, int *dev_input, int *dev_output1, int *dev_output2)
     {
@@ -27,14 +27,7 @@ namespace StreamCompaction {
         return;
       }
 
-      if (index >= offset)
-      {
-        dev_output2[index] = dev_output1[index - offset] + dev_output1[index];
-      }
-      else
-      {
-        dev_output2[index] = dev_output1[index];
-      }
+      dev_output2[index] = dev_output1[index] + (index >= offset ? dev_output1[index - offset] : 0);
     }
 
     __global__ void kernShift(int n, int *dev_input, int *dev_output)
@@ -55,7 +48,7 @@ namespace StreamCompaction {
     void scan(int n, int *odata, const int *idata) {
       int numBlocks = (n + BLOCK_SIZE - 1) / BLOCK_SIZE;
       int *temp;
-      int d, offset;
+      int offset;
 
       cudaMalloc((void**)&dev_input, n * sizeof(int));
       cudaMalloc((void**)&dev_output1, n * sizeof(int));
@@ -67,10 +60,8 @@ namespace StreamCompaction {
 
       kernShift << <numBlocks, BLOCK_SIZE >> > (n, dev_input, dev_output1);
 
-      for (d = 1; d <= ilog2ceil(n); d++)
+      for (offset = 1; offset <= n; offset *= 2)
       {
-        offset = pow(2, d - 1);
-
         kernScan << <numBlocks, BLOCK_SIZE >> > (n, offset, dev_input, dev_output1, dev_output2);
 
         temp = dev_output1;
