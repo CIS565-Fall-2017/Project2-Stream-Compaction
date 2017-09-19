@@ -3,7 +3,7 @@
 #include <cuda_runtime.h>
 #include "common.h"
 #include "naive.h"
-#define blockSize 128
+#define blockSize 512
 #define checkCUDAErrorWithLine(msg) checkCUDAError(msg, __LINE__)
 
 namespace StreamCompaction {

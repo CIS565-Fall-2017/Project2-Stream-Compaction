@@ -3,7 +3,7 @@
 #include "common.h"
 #include "efficient.h"
 
-#define blockSize 128
+#define blockSize 512
 #define checkCUDAErrorWithLine(msg) checkCUDAError(msg, __LINE__)
 
 namespace StreamCompaction {
@@ -35,36 +35,68 @@ namespace StreamCompaction {
 			}
 		}
 
+		__global__ void kernNonPowerTwoHelper(int N, int zeroStartIndex, int zeroEndIndex, int* idata) {
+			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
+			if (index < N) {
+				if (index >= zeroStartIndex && index < zeroEndIndex) {
+					idata[index] = 0;
+				}
+			}
+		}
+
+		__global__ void kernChangeElem(int *arr, int idx, int val) {
+			arr[idx] = val;
+		}
+		
+		void gpuEfficientScan(int originSize, int npoweroftwo, int* dev_tempin) {
+			dim3 fullBlocksPerGrid((npoweroftwo + blockSize - 1) / blockSize);
+			//Helper kernal function to set extra elements to 0 if the size is not a power of 2.
+			if (originSize != npoweroftwo) {
+				kernNonPowerTwoHelper << <fullBlocksPerGrid, blockSize >> > (npoweroftwo, originSize, npoweroftwo, dev_tempin);
+			}
+			
+			for (int iteration = 0; iteration <= ilog2ceil(npoweroftwo) - 1; iteration++) {
+				kernEfficientUpsweep << <fullBlocksPerGrid, blockSize >> > (pow(2, iteration + 1),
+					pow(2, iteration), npoweroftwo, dev_tempin);
+			}
+
+			/*cudaMemcpy(odata, dev_tempin, npoweroftwo * sizeof(int), cudaMemcpyDeviceToHost);
+			odata[npoweroftwo - 1] = 0;
+			cudaMemcpy(dev_tempin, odata, npoweroftwo * sizeof(int), cudaMemcpyHostToDevice);*/
+
+			kernChangeElem << <1, 1 >> >(dev_tempin, npoweroftwo - 1, 0);
+
+			for (int iteration = ilog2ceil(npoweroftwo) - 1; iteration >= 0; iteration--) {
+				kernEfficientDownsweep << <fullBlocksPerGrid, blockSize >> > (pow(2, iteration + 1),
+					pow(2, iteration), npoweroftwo, dev_tempin);
+			}
+		}
+
         /**
          * Performs prefix-sum (aka scan) on idata, storing the result into odata.
          */
         void scan(int n, int *odata, const int *idata) {
-			dim3 fullBlocksPerGrid((n + blockSize - 1) / blockSize);
+			
 			int *dev_tempin;
-			cudaMalloc((void**)&dev_tempin, n * sizeof(int));
+			//check if n is power of 2, if not, needs to add extra zeros in order to make n a power of 2
+			bool isPowerOfTwo = (n != 0) && ((n & (n - 1)) == 0);
+			int npoweroftwo = n;
+			if (!isPowerOfTwo) {
+				npoweroftwo = pow(2, ilog2ceil(n));
+			}
+			
+			cudaMalloc((void**)&dev_tempin, npoweroftwo * sizeof(int));
 			checkCUDAErrorWithLine("cudaMalloc dev_tempin failed!");
-			cudaMemcpy(dev_tempin, idata, n * sizeof(int), cudaMemcpyHostToDevice);
+			cudaMemcpy(dev_tempin, idata, npoweroftwo * sizeof(int), cudaMemcpyHostToDevice);
 			checkCUDAErrorWithLine("cuda Memcpy from idata to dev_tempin failed!");
 
 			timer().startGpuTimer();
-			for (int iteration = 0; iteration <= ilog2ceil(n)-1; iteration++) {
-					kernEfficientUpsweep << <fullBlocksPerGrid, blockSize >> > (pow(2, iteration + 1),
-						pow(2, iteration), n, dev_tempin);
-			}
-
-			cudaMemcpy(odata, dev_tempin, n * sizeof(int), cudaMemcpyDeviceToHost);
-			odata[n - 1] = 0;
-			cudaMemcpy(dev_tempin, odata, n * sizeof(int), cudaMemcpyHostToDevice);
-
-			for (int iteration = ilog2ceil(n) - 1; iteration >= 0; iteration--) {
-				kernEfficientDownsweep << <fullBlocksPerGrid, blockSize >> > (pow(2, iteration + 1),
-					pow(2, iteration), n, dev_tempin);
-			}
+			gpuEfficientScan(n, npoweroftwo, dev_tempin);
 			timer().endGpuTimer();
 
-			cudaMemcpy(odata, dev_tempin, n * sizeof(int), cudaMemcpyDeviceToHost);
+			cudaMemcpy(odata, dev_tempin, npoweroftwo * sizeof(int), cudaMemcpyDeviceToHost);
 			checkCUDAErrorWithLine("cuda Memcpy from dev_tempin to odata failed!");
-			cudaFree(dev_tempin);
+			cudaFree(dev_tempin);			
         }
 
         /**
@@ -77,10 +109,75 @@ namespace StreamCompaction {
          * @returns      The number of elements remaining after compaction.
          */
         int compact(int n, int *odata, const int *idata) {
-            timer().startGpuTimer();
+           
             // TODO
+			bool isPowerOfTwo = (n != 0) && ((n & (n - 1)) == 0);
+			int npoweroftwo = n;
+			if (!isPowerOfTwo) {
+				npoweroftwo = pow(2, ilog2ceil(n));
+			}
+
+			dim3 fullBlocksPerGrid((npoweroftwo + blockSize - 1) / blockSize);
+
+			//Initialize two host arrays to store intermediate bools and indices
+			int* ibools;
+			ibools = (int*)malloc(npoweroftwo * sizeof(int));
+			int* indices;
+			indices = (int*)malloc(npoweroftwo * sizeof(int));
+			
+			//Initialize and allocate CUDA device arrays
+			int *dev_bool;
+			int *dev_idata;
+			int *dev_odata;
+			int *dev_indices;
+			cudaMalloc((void**)&dev_bool, npoweroftwo * sizeof(int));
+			checkCUDAErrorWithLine("cudaMalloc dev_bool failed!");
+			cudaMalloc((void**)&dev_idata, npoweroftwo * sizeof(int));
+			checkCUDAErrorWithLine("cudaMalloc dev_idata failed!");
+			cudaMalloc((void**)&dev_odata, npoweroftwo * sizeof(int));
+			checkCUDAErrorWithLine("cudaMalloc dev_odata failed!");
+			cudaMalloc((void**)&dev_indices, npoweroftwo * sizeof(int));
+			checkCUDAErrorWithLine("cudaMalloc dev_indices failed!");
+			
+			//Copy data from host input data to device data
+			cudaMemcpy(dev_idata, idata, npoweroftwo * sizeof(int), cudaMemcpyHostToDevice);
+			checkCUDAErrorWithLine("cuda Memcpy from idata to dev_idata failed!");
+
+			//Perform a basic check in kernal, mark 1 for numbers not equal to 0, 0 for numbers equal to 0
+			timer().startGpuTimer();
+			StreamCompaction::Common::kernMapToBoolean << <fullBlocksPerGrid, blockSize >> > (npoweroftwo, dev_bool, dev_idata);
+			cudaDeviceSynchronize();
+
+			//Copy result from device array dev_bool to device array dev_indices for excluse scan.
+			cudaMemcpy(dev_indices, dev_bool, npoweroftwo * sizeof(int), cudaMemcpyDeviceToDevice);
+			
+			//Perform an exclusive sum scan on ibools to get the final indices array
+			gpuEfficientScan(n, npoweroftwo, dev_indices);
+
+			//perform the final scatter step to store the result in dev_odata
+			StreamCompaction::Common::kernScatter << <fullBlocksPerGrid, blockSize >> > (n, dev_odata, dev_idata, dev_bool, dev_indices);
             timer().endGpuTimer();
-            return -1;
+
+			//copy result from dev_odata to odata.
+			cudaMemcpy(odata, dev_odata, n * sizeof(int), cudaMemcpyDeviceToHost);
+			checkCUDAErrorWithLine("cuda Memcpy from dev_odata to odata failed!");
+
+			cudaFree(dev_bool);
+			cudaFree(dev_idata);
+			cudaFree(dev_odata);
+			cudaFree(dev_indices);
+
+			//How to decide the remianing number in odata?
+			int count=0;
+			for (int i = 0; i < n; i++) {
+				if (odata[i] != 0) {
+					count++;
+				}
+				else {
+					break;
+				}
+			}
+            return count;
         }
     }
 }
