@@ -62,7 +62,7 @@ namespace StreamCompaction {
 			cudaMemcpy(dev_scan, idata, paddedSize * sizeof(int), cudaMemcpyHostToDevice);
 			checkCUDAError("scan memcpy failed");
 
-			int blockSize = 128;
+			int blockSize = 32;
 			dim3 arrCountSize((paddedSize + blockSize - 1) / blockSize);
 
 			kernPadZeros << <arrCountSize, blockSize >> >(n, paddedSize, dev_scan);
