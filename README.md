@@ -135,7 +135,11 @@ Thrust scan power-of-two: 30.4844 ms
 
 Thrust scan non-power-of-two: 1.6409 ms
 
-# 5. Performance Graphs #
+# 5. Performance Graphs and Results #
+
+***The result Comparison table can be found in the repo: img/result.xlsx.***
+
+[https://github.com/VElysianP/Project2-Stream-Compaction-1/blob/master/img/results.xlsx](https://github.com/VElysianP/Project2-Stream-Compaction-1/blob/master/img/results.xlsx "Result Comparison Link")
 
 Scan Time
 
