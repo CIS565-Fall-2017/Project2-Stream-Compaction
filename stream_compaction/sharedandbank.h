@@ -8,11 +8,11 @@ namespace StreamCompaction {
         StreamCompaction::Common::PerformanceTimer& timer();
 
 		__global__ void kernZeroExcessLeaves(const int pow2roundedsize, const int orig_size, int* data);
-		__global__ void kernScan(const int shMemEntries, int* odata, const int* idata, int* SUMS);
-		__global__ void kernAddBack(const int n, int* odata, const int* scannedSumsLevel);
-		void recursiveScan(const int n, const int level, int* odata, const int *idata);
+		__global__ void kernScan(const int shMemEntries, int* idata, int* SUMS);
+		__global__ void kernAddBack(const int n, int* idata, const int* scannedSumsLevel);
+		void recursiveScan(const int n, const int level, int *idata);
         void scan(const int n, int *odata, const int *idata);
-        void scanNoMalloc(const int n, int* dev_odata, int *dev_idata);
+        void scanNoMalloc(const int n, int *dev_idata);
         int compact(const int n, int *odata, const int *idata);
     }
 }

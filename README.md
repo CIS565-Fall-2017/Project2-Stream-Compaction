@@ -19,7 +19,7 @@ https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch39.html
 <br />
     The key to the "Efficient" scan implentation was to make sure you were only launching as many blocks as were required for the depth passes in both the up and down sweeps as well as making sure threads that were running were consecutive. The key to Shared memory was to make a device memory pointer array to store the scans of the reduced sums of previous blocks. Also you must add this missing info back up through the recursion tree so that the original scan blocks include the running total of the previous blocks on their recursion level. This is process described with diagrams in the GPU Gems article linked in the Overview section.
 <br />
-    Oddly enough, I did not see any perf improvements from adding the bank conflict avoidance feature. Sad.
+    Oddly enough, I did not see any perf improvements from adding the bank conflict avoidance feature. Sad. Perhaps the extra indexing calculations to avoid the conflict is the same or worse than the time a thread has to wait around for its queueu'd read from a __shared__ bank in the case of a conflict.
 <br />
     The last few images are of the NSight debugger for the thrust kernel (its kernel info and its timeline). Looking at the timeline I was suprised to see how little of the time is spent actually doing compute work (the rest is memory related). Also, judging from thrust's kernel launch info, it is using shared memory. Perhaps it's using the optimizations mentioned in the GPU Gems 3 Ch. 39 article linked in the Overview section. Recursive calls are required for that implementation but I see no multiple kernel calls so I'm not quite sure what optimizations it's using.
 

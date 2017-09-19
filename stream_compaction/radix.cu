@@ -115,7 +115,9 @@ namespace StreamCompaction {
 				//	}
 				//}//end generate f (scan)
 
-				StreamCompaction::SharedAndBank::scanNoMalloc(pow2roundedsize, dev_f, dev_e);
+				cudaMemcpy(dev_f, dev_e, numbytes_copy, cudaMemcpyDeviceToDevice);
+				checkCUDAError("cudaMemcpy from to dev_e dev_f failed!");
+				StreamCompaction::SharedAndBank::scanNoMalloc(pow2roundedsize, dev_f);
 
 				//find totalFalses
 				int eEND, fEND;

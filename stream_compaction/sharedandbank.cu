@@ -20,7 +20,7 @@ namespace StreamCompaction {
 		}
 
 #define AVOIDBANKCONFLICT 1
-		__global__ void kernScan(const int shMemEntries, int* odata, const int* idata, int* SUMS) {
+		__global__ void kernScan(const int shMemEntries, int* idata, int* SUMS) {
 			extern __shared__ int temp[];
 			const int thid_blk = threadIdx.x;
 			const int thid_grid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -86,24 +86,24 @@ namespace StreamCompaction {
 			__syncthreads();
 
 #if AVOIDBANKCONFLICT == 1
-			odata[ai_grid] = temp[ai + bankOffsetA];
-			odata[bi_grid] = temp[bi + bankOffsetB];
+			idata[ai_grid] = temp[ai + bankOffsetA];
+			idata[bi_grid] = temp[bi + bankOffsetB];
 #else
-			odata[2*thid_grid]   = temp[2*thid_blk];
-			odata[2*thid_grid+1] = temp[2*thid_blk+1];
+			idata[2*thid_grid]   = temp[2*thid_blk];
+			idata[2*thid_grid+1] = temp[2*thid_blk+1];
 #endif
 		}
 
-		__global__ void kernAddBack(const int n, int* odata, const int* scannedSumsLevel) {
+		__global__ void kernAddBack(const int n, int* idata, const int* scannedSumsLevel) {
 			__shared__ int scannedSumForThisBlock;
 			if (threadIdx.x == 0) { scannedSumForThisBlock = scannedSumsLevel[blockIdx.x]; }
 			const int thid_grid = blockIdx.x*blockDim.x + threadIdx.x;
 			__syncthreads();
-			odata[2*thid_grid] += scannedSumForThisBlock;//add running total of all prev elements before this block to this block
-			odata[2*thid_grid+1] += scannedSumForThisBlock;
+			idata[2*thid_grid] += scannedSumForThisBlock;//add running total of all prev elements before this block to this block
+			idata[2*thid_grid+1] += scannedSumForThisBlock;
 		}
 
-		void recursiveScan(const int n, const int level, int* odata, const int *idata) {
+		void recursiveScan(const int n, const int level, int *idata) {
 			//printf("\ncalling recursiveScan with pow2size: %i level: %i\n", n, level);
 
 			//generate params for the kernel
@@ -130,11 +130,11 @@ namespace StreamCompaction {
 				//result odata. Doing this will allow us to arrive at our 
 				//final inclusive scanned result. pretty cool. 
 				kernScan<<<pow2BlocksThisLevel,blockSize,shMemSize>>>(
-					shMemEntries, odata, idata, scannedSUMS[level]);
+					shMemEntries, idata, scannedSUMS[level]);
 
-				recursiveScan(pow2BlocksThisLevel, level+1, scannedSUMS[level], scannedSUMS[level]);
+				recursiveScan(pow2BlocksThisLevel, level+1, scannedSUMS[level]); //if you need odata and idata, then its scannedSUMS[level], scannedSUMS[level]
 
-				kernAddBack<<<pow2BlocksThisLevel,blockSize>>>(n, odata, scannedSUMS[level]);
+				kernAddBack<<<pow2BlocksThisLevel,blockSize>>>(n, idata, scannedSUMS[level]);
 
 			} else {
 				//last level, 1 block to run, just call the kernel, the recursive call that we
@@ -144,7 +144,7 @@ namespace StreamCompaction {
 				//and then into the final result odata of the first recursive call
 
 				kernScan<<<pow2BlocksThisLevel,blockSize,shMemSize>>>(
-					shMemEntries, odata, idata, scannedSUMS[level]);
+					shMemEntries, idata, scannedSUMS[level]);
 				//gpuErrchk(cudaPeekAtLastError());
 				//gpuErrchk(cudaDeviceSynchronize());
 			}
@@ -152,7 +152,7 @@ namespace StreamCompaction {
 
 		void scan(const int n, int *odata, const int *idata) {
 			int* dev_idata;
-			int* dev_odata;
+			//int* dev_odata;
 
 			const int pow2roundedsize = 1 << ilog2ceil(n);
 			const int numbytes_pow2roundedsize = pow2roundedsize * sizeof(int);
@@ -163,26 +163,28 @@ namespace StreamCompaction {
 			/////////////////////////////////////////
 			cudaMalloc((void**)&dev_idata, numbytes_pow2roundedsize);
 			checkCUDAError("cudaMalloc dev_data failed!");
-			cudaMalloc((void**)&dev_odata, numbytes_pow2roundedsize);
-			checkCUDAError("cudaMalloc dev_data failed!");
 			cudaMemcpy(dev_idata, idata, numbytes_copy, cudaMemcpyHostToDevice);
 			checkCUDAError("cudaMemcpy from idata to dev_data failed!");
+			//cudaMalloc((void**)&dev_odata, numbytes_pow2roundedsize);
+			//checkCUDAError("cudaMalloc dev_data failed!");
 			//cudaMemcpy(dev_odata, idata, numbytes_copy, cudaMemcpyHostToDevice);
 			//checkCUDAError("cudaMemcpy from idata to dev_data failed!");
 
 			timer().startGpuTimer();
-			StreamCompaction::SharedAndBank::scanNoMalloc(n, dev_odata, dev_idata);
+			StreamCompaction::SharedAndBank::scanNoMalloc(n, dev_idata);
 			timer().endGpuTimer();
 
-			cudaMemcpy(odata, dev_odata, numbytes_copy, cudaMemcpyDeviceToHost);
+			cudaMemcpy(odata, dev_idata, numbytes_copy, cudaMemcpyDeviceToHost);
 			checkCUDAError("cudaMemcpy from dev_odata to odata failed!");
-			cudaFree(dev_odata);
-			checkCUDAError("cudaFree(dev_odata) failed!");
+			//cudaMemcpy(odata, dev_odata, numbytes_copy, cudaMemcpyDeviceToHost);
+			//checkCUDAError("cudaMemcpy from dev_odata to odata failed!");
+			//cudaFree(dev_odata);
+			//checkCUDAError("cudaFree(dev_odata) failed!");
 			cudaFree(dev_idata);
 			checkCUDAError("cudaFree(dev_idata) failed!");
 		}
 
-		void scanNoMalloc(const int n, int* dev_odata, int *dev_idata) {
+		void scanNoMalloc(const int n, int *dev_idata) {
 			const int pow2roundedsize = 1 << ilog2ceil(n);
 			const int numbytes_pow2roundedsize = pow2roundedsize * sizeof(int);
 			const int numbytes_copy = n * sizeof(int);
@@ -226,7 +228,7 @@ namespace StreamCompaction {
 			////////////////////////
 			//// RECURSIVE SCAN ////
 			////////////////////////
-			recursiveScan(pow2roundedsize, 0, dev_odata, dev_idata);
+			recursiveScan(pow2roundedsize, 0, dev_idata);
 
 			///////////////////////
 			//// COPY AND FREE ////
@@ -271,10 +273,10 @@ namespace StreamCompaction {
 
 			StreamCompaction::Common::kernMapToBoolean<<<gridDim, blockSize>>>(n, dev_bools, dev_idata);
 
-			//cudaMemcpy(dev_indices, dev_bools, numbytes_copy, cudaMemcpyDeviceToDevice);
-			//checkCUDAError("cudaMemcpy from to dev_bools to dev_indices failed!");
+			cudaMemcpy(dev_indices, dev_bools, numbytes_copy, cudaMemcpyDeviceToDevice);
+			checkCUDAError("cudaMemcpy from to dev_bools to dev_indices failed!");
 
-			StreamCompaction::SharedAndBank::scanNoMalloc(pow2roundedsize, dev_indices, dev_bools);
+			StreamCompaction::SharedAndBank::scanNoMalloc(pow2roundedsize, dev_indices);
 
 
 			StreamCompaction::Common::kernScatter<<<gridDim, blockSize>>>(n, dev_odata, dev_idata, dev_bools, dev_indices);
