@@ -14,7 +14,14 @@
 #include "testing_helpers.hpp"
 
 
-const int SIZE = 1 << 8; // = 256, feel free to change the size of array
+//const int SIZE = 1 << 16;
+const int SIZE = 1 << 14;
+//const int SIZE = 1 << 12;
+//const int SIZE = 1 << 10;
+//const int SIZE = 1 << 8;
+//const int SIZE = 1 << 6;
+
+//const int SIZE = 1 << 8; // = 256, feel free to change the size of array
 //const int SIZE = 1 << 5; // = 32, feel free to change the size of array
 //const int SIZE = 1 << 4; // = 16, feel free to change the size of array
 //const int SIZE = 1 << 3; // = 8, feel free to change the size of array

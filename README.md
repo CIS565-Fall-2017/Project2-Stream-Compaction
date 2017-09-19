@@ -6,18 +6,41 @@ CUDA Stream Compaction
 * Name: Meghana Seshadri
 * Tested on: Windows 10, i7-4870HQ @ 2.50GHz 16GB, GeForce GT 750M 2048MB (personal computer)
 
-### (TODO: Your README)
-
-Include analysis, etc. (Remember, this is public, so don't put
-anything here that you don't want to share with the world.)
 
 
 
 
+## Project Overview
+
+The goal of this project was to get an introduction to the Scan and Stream Compaction - algorithms that 
+
+Four Implementations: 
+* CPU algorithm
+* Naive parallel algorithm 
+* Work-efficient algorithm 
+* Thrust-based algorithm
 
 
 
+## Performance Analysis 
 
+Below is a graph that shows which would be the best block size to test on.
+
+![](images/blockcomparison.PNG)
+
+
+![](images/algorithmcomparison.PNG)
+
+
+![](images/blgorithmcomparisontable.PNG)
+
+
+
+### Scan and Stream Compaction Test Results
+
+The following tests were run on 128 elements at a block size of 128.
+
+```
 ****************
 ** SCAN TESTS **
 ****************
@@ -80,3 +103,4 @@ anything here that you don't want to share with the world.)
     [   2   1   3   1   2   1   1   1   3   3   3   3   3 ...   3   1 ]
     passed
 Press any key to continue . . .
+```
