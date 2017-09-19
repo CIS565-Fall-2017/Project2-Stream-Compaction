@@ -159,7 +159,13 @@ namespace StreamCompaction {
 				numThreads = numThreads << 1;
 			}
 
+			StreamCompaction::Common::kernScatter << <nCountSize, blockSize >> >(n, dev_odata, dev_idata, dev_bools, dev_indices);
+
+            timer().endGpuTimer();
+
 			// find the size of the out data
+			// doing this outside of timer to avoid memory latency factoring into timer, 
+			// but ideally you'd allocate the odata to be exactly the size it needs  to be
 			int lastIndex;
 			int lastBool;
 
@@ -170,11 +176,7 @@ namespace StreamCompaction {
 
 			int outSize = lastIndex + lastBool;
 
-			StreamCompaction::Common::kernScatter << <nCountSize, blockSize >> >(n, dev_odata, dev_idata, dev_bools, dev_indices);
-
-            timer().endGpuTimer();
-
-			cudaMemcpy(odata, dev_odata, outSize * sizeof(int), cudaMemcpyDeviceToDevice);
+			cudaMemcpy(odata, dev_odata, outSize * sizeof(int), cudaMemcpyDeviceToHost);
 
 			cudaFree(dev_bools);
 			cudaFree(dev_idata);
