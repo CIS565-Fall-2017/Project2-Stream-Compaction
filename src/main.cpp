@@ -14,7 +14,7 @@
 #include <stream_compaction/RadixSort.h>
 #include "testing_helpers.hpp"
 
-const int SIZE = 1 << 8; // feel free to change the size of array
+const int SIZE = 2048; //1 << 8; // feel free to change the size of array
 const int NPOT = SIZE - 3; // Non-Power-Of-Two
 int a[SIZE], b[SIZE], c[SIZE];
 

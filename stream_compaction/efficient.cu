@@ -28,9 +28,9 @@ namespace StreamCompaction {
 			}
 
 			// ------------ old branch mehthod----------------
-			//if ((index + 1) % offset == 0) {
-			//	dev_data[index] += dev_data[index - offset / 2];
-			//}
+			/*if ((index + 1) % offset == 0) {
+				dev_data[index] += dev_data[index - offset / 2];
+			}*/
 			// -----------------------------------------------
 
 			int targetIndex = (index + 1) * offset - 1;
@@ -48,11 +48,11 @@ namespace StreamCompaction {
 			}
 
 			// ------------ old branch mehthod----------------
-			//if ((index + 1) % offset == 0) {
-			//	int t = dev_data[index - offset / 2];
-			//	dev_data[index - offset / 2] = dev_data[index];
-			//	dev_data[index] += t;
-			//}
+			/*if ((index + 1) % offset == 0) {
+				int t = dev_data[index - offset / 2];
+				dev_data[index - offset / 2] = dev_data[index];
+				dev_data[index] += t;
+			}*/
 			// -----------------------------------------------
 
 			int targetIndex = (index + 1) * offset - 1;
@@ -251,8 +251,10 @@ namespace StreamCompaction {
 			// Step 2 : exclusive scan indices
 			// Up-sweep
 			for (int d = 0; d <= dMax - 1; d++) {
+				// ------------ old branch mehthod----------------
 				//kernEffcientUpSweep << <scan_gridDim, blockDim >> > (size, (int)powf(2.0f, (float)d + 1.0f), indices);
-				
+				// -----------------------------------------------
+
 				//only launch threads that acutally work
 				int temp_size = (int)powf(2.0f, (float)(dMax - d - 1));
 				kernEffcientUpSweep << <dim3((temp_size + blockSize - 1) / blockSize), blockDim >> > (temp_size, (int)powf(2.0f, (float)d + 1.0f), indices);
@@ -264,8 +266,10 @@ namespace StreamCompaction {
 			checkCUDAError("kernSetRootZero failed!");
 
 			for (int d = dMax - 1; d >= 0; d--) {
+				// ------------ old branch mehthod----------------
 				//kernEfficientDownSweep << <scan_gridDim, blockDim >> > (size, (int)powf(2.0f, (float)d + 1.0f), indices);
-				
+				// -----------------------------------------------
+
 				//only launch threads that acutally work
 				int temp_size = (int)powf(2.0f, (float)(dMax - d - 1));
 				kernEfficientDownSweep << <dim3((temp_size + blockSize - 1) / blockSize), blockDim >> > (temp_size, (int)powf(2.0f, (float)d + 1.0f), indices);
