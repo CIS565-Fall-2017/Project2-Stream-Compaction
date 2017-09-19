@@ -11,6 +11,7 @@
 #include <stream_compaction/naive.h>
 #include <stream_compaction/efficient.h>
 #include <stream_compaction/thrust.h>
+#include <stream_compaction/radix.h>
 #include "testing_helpers.hpp"
 
 const int SIZE = 1 << 8; // feel free to change the size of array
@@ -138,6 +139,52 @@ int main(int argc, char* argv[]) {
     printElapsedTime(StreamCompaction::Efficient::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
     //printArray(count, c, true);
     printCmpLenResult(count, expectedNPOT, b, c);
+
+
+	printf("\n");
+	printf("*****************************\n");
+	printf("** MY OWN RADIX SORT TESTS **\n");
+	printf("*****************************\n");
+	printDesc("radix basic, power-of-two");
+	const int COUNT_BASIC = 16;
+	int basic[COUNT_BASIC];
+	int basic_out[COUNT_BASIC];
+	genArray(COUNT_BASIC, basic, 78);
+	StreamCompaction::Radix::sort(COUNT_BASIC, basic_out, basic);
+	//printCPUArray(COUNT_BASIC, basic_out);
+	printf("\n");
+	printElapsedTime(StreamCompaction::Radix::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)\n\n");
+
+	printDesc("radix basic, non power-of-two");
+	const int COUNT_BASIC2 = 18;
+	int basic2[COUNT_BASIC2];
+	int basic_out2[COUNT_BASIC2];
+	genArray(COUNT_BASIC2, basic2, 78);
+	StreamCompaction::Radix::sort(COUNT_BASIC2, basic_out2, basic2);
+	//printCPUArray(COUNT_BASIC2, basic_out2);
+	printf("\n");
+	printElapsedTime(StreamCompaction::Radix::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)\n");
+
+
+	printDesc("radix massive, power-of-two");
+	const int COUNT_MASSIVE = 1 << 7;
+	int massive[COUNT_MASSIVE];
+	int massive_out[COUNT_MASSIVE];
+	genArray(COUNT_MASSIVE, massive, 78);
+	StreamCompaction::Radix::sort(COUNT_MASSIVE, massive_out, massive);
+	//printCPUArray(COUNT_MASSIVE, massive_out);
+	printf("\n");
+	printElapsedTime(StreamCompaction::Radix::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)\n\n");
+
+	printDesc("radix massive, non power-of-two");
+	const int COUNT_MASSIVE2 = (1 << 7) + 3;
+	int massive2[COUNT_MASSIVE2];
+	int massive_out2[COUNT_MASSIVE2];
+	genArray(COUNT_MASSIVE2, massive2, 78);
+	StreamCompaction::Radix::sort(COUNT_MASSIVE2, massive_out2, massive2);
+	//printCPUArray(COUNT_MASSIVE2, massive_out2);
+	printf("\n");
+	printElapsedTime(StreamCompaction::Radix::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)\n");
 
     system("pause"); // stop Win32 console from closing on exit
 }

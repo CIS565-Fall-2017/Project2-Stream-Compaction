@@ -13,10 +13,65 @@
 #define FILENAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #define checkCUDAError(msg) checkCUDAErrorFn(msg, FILENAME, __LINE__)
 
+// "x" in my master equation
+#define MEM_PER_THREAD 4
+
+// "z" in my master equation
+#define OPTIMAL_BLOCKS_PER_SM 32
+
+// Inequality/RHS in my master equation
+#define SHARED_MEM_MAX 96000
+
+// A muting term that tones done the optimality
+#define TONE_DOWN 0.85f
+
 /**
  * Check for CUDA errors; print and exit if there was a problem.
  */
 void checkCUDAErrorFn(const char *msg, const char *file = NULL, int line = -1);
+
+inline int binary(int num)
+{
+	if (num == 0)
+	{
+		return 0;
+	}
+	else
+	{
+		return (num % 2) + 10 * binary(num / 2);
+	}
+}
+
+inline void printCPUArrayb(int n, int* arr) {
+	printf("\n( ");
+	for (int i = 0; i < n - 1; i++) {
+		printf("%d, ", binary(arr[i]));
+	}
+	printf("%d)", binary(arr[n - 1]));
+}
+
+inline void printGPUArrayb(int n, int* dev_arr) {
+	int* cpu_arr = (int*)malloc(sizeof(int) * n);
+	cudaMemcpy(cpu_arr, dev_arr, sizeof(int)* n, cudaMemcpyDeviceToHost);
+	printCPUArrayb(n, cpu_arr);
+	free(cpu_arr);
+}
+
+
+inline void printCPUArray(int n, int* arr) {
+	printf("\n( ");
+	for (int i = 0; i < n-1; i++) {
+		printf("%d, ", arr[i]);
+	}
+	printf("%d)", arr[n-1]);
+}
+
+inline void printGPUArray(int n, int* dev_arr) {
+	int* cpu_arr = (int*)malloc(sizeof(int) * n);
+	cudaMemcpy(cpu_arr, dev_arr, sizeof(int)* n, cudaMemcpyDeviceToHost);
+	printCPUArray(n, cpu_arr);
+	free(cpu_arr);
+}
 
 inline int ilog2(int x) {
     int lg = 0;
@@ -24,6 +79,19 @@ inline int ilog2(int x) {
         ++lg;
     }
     return lg;
+}
+
+inline int getThreadsPerBlock() {
+	//Get theoretical best y value you can based on GPU specs
+	//TODO: Find a better way to get the specs
+	int theoretical_y = SHARED_MEM_MAX * TONE_DOWN / (MEM_PER_THREAD * OPTIMAL_BLOCKS_PER_SM);
+
+	//Find closest multiple of 32 to theoretical_y
+	for (int i = 0; i < SHARED_MEM_MAX / 32; i++) {
+		if (i * 32 >= theoretical_y) {
+			return (i - 1) * 32;
+		}
+	}
 }
 
 inline int ilog2ceil(int x) {
