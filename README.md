@@ -42,6 +42,7 @@ This algorithm requires an extra buffer to avoid overriding data needed for othe
 Every iteration, every element in array index greater than or equal to 2^d where d is the iteration depth, the new element at array index is computed by adding the element in the same index and the index 2^d indices before it.
 
 A helpful diagram illustrating the algorithm:
+
 ![](img/naive_example.PNG)
 
 
