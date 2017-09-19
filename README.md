@@ -100,15 +100,15 @@ Tested on GeForce GTX 1070
 
 #### Scan
 
-![](img/scan20k.png) ![](img/scan4k.png)
+![](img/scan20k.png) ![](img/scan4m.png)
 
 #### Stream Compaction
 
-![](img/compact20k.png) ![](img/compact4k.png)
+![](img/compact20k.png) ![](img/compact4m.png)
 
 #### Radix Sort
 
-![](img/radix20k.png) ![](img/radix4k.png)
+![](img/radix20k.png) ![](img/radix4m.png)
 
 ### Q&A
 
