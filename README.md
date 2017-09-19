@@ -41,7 +41,7 @@ An exclusive scan can be generated from an inclusive scan by shifting the result
 Following is the illustration of inclusive scan.
 
 <p align="center">
-  <img src="img/NaiveScan.png">
+  <img src="img/NaiveScan.png" height="188" width="393">
 </p>
 
 
@@ -51,13 +51,13 @@ The work-efficient scan algorithm consists of two phases: the reduce phase (also
 * In the **up-sweep** phase, we traverse the tree from leaves to root computing partial sums at internal nodes of the tree.
 
 <p align="center">
-  <img src="img/UpSweep.png">
+  <img src="img/UpSweep.png" height="179" width="356">
 </p>
 
 * In the **down-sweep** phase, we traverse back down the tree from the root, using the partial sums from the reduce phase to build the scan in place on the array.  We start by inserting zero at the root of the tree, and on each step, each node at the current level passes its own value to its left child, and the sum of its value and the former value of its left child to its right child.
 
 <p align="center">
-  <img src="img/DownSweep.png">
+  <img src="img/DownSweep.png" height="224" width="355">
 </p>
 
 The compact algorithm is the same as in cpu compaction.
