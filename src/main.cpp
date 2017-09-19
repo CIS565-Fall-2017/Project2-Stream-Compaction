@@ -13,7 +13,7 @@
 #include <stream_compaction/thrust.h>
 #include "testing_helpers.hpp"
 
-const int SIZE = 1 << 8; // feel free to change the size of array
+const int SIZE = 1 << 18; // feel free to change the size of array
 const int NPOT = SIZE - 3; // Non-Power-Of-Two
 int a[SIZE], b[SIZE], c[SIZE];
 
@@ -79,6 +79,9 @@ int main(int argc, char* argv[]) {
     printElapsedTime(StreamCompaction::Thrust::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
     //printArray(SIZE, c, true);
     printCmpResult(SIZE, b, c);
+	//std::cout << "a[0]=" << b[0] << ",b[0]=" << c[0] << std::endl;
+	//std::cout << "a[1]=" << b[1] << ",b[1]=" << c[1] << std::endl;
+	//std::cout << "a[2]=" << b[2] << ",b[2]=" << c[2] << std::endl;
 
     zeroArray(SIZE, c);
     printDesc("thrust scan, non-power-of-two");
