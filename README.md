@@ -100,15 +100,23 @@ Tested on GeForce GTX 1070
 
 #### Scan
 
-![](img/scan20k.png) ![](img/scan4m.png)
+| Scan for SIZE < 20K | Scan for SIZE > 4M | 
+| ------------- | ----------- |
+| ![](img/scan20K.png) | ![](img/scan4m.png) |
+
+![](img/scan20k.png) ![](img/scan4K.png)
 
 #### Stream Compaction
 
-![](img/compact20k.png) ![](img/compact4m.png)
+| Compact for SIZE < 20K | Compact for SIZE > 4M | 
+| ------------- | ----------- |
+| ![](img/compact20k.png) | ![](img/compact4m.png) |
 
 #### Radix Sort
 
-![](img/radix20k.png) ![](img/radix4m.png)
+| Radix Sort for SIZE < 20K | Radix Sort for SIZE > 4M | 
+| ------------- | ----------- |
+| ![](img/radix20k.png) | ![](img/radix4m.png) |
 
 ### Q&A
 
