@@ -28,7 +28,7 @@ compute the exclusive prefix sum using a for loop
 The following figure shows how stream compaction works.
 
 <p align="center">
-  <img src="img/Scatter.png" height="5000" width="250">
+  <img src="img/Scatter.png" height="500" width="250">
 </p>
 
 ## 2. Naive GPU Scan Algorithm (using shared memory)
