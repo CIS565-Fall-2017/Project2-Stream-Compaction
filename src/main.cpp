@@ -13,8 +13,8 @@
 #include <stream_compaction/thrust.h>
 #include <stream_compaction/radix.h>
 #include "testing_helpers.hpp"
-const int SIZE = 1 << 10; // feel free to change the size of array
-const int NPOT = SIZE - 3; // Non-Power-Of-Two
+const int SIZE = 1 << 4; // feel free to change the size of array
+const int NPOT = SIZE - 12; // Non-Power-Of-Two
 //int a[SIZE], b[SIZE], c[SIZE], d[SIZE];
 
 int main(int argc, char* argv[]) {
