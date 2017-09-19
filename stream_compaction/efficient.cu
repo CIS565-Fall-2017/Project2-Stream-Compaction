@@ -189,8 +189,6 @@ namespace StreamCompaction {
 
 			exclusiveScan(nextPow, dev_indices, bools);
 
-			// Says passed but I'm not convinced why this worked.
-			// Gotta test this more.
 			int numElements = 0;
 			for (int i = 0; i < n; i++) {
 				if (bools[i] == 1) {
