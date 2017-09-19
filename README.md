@@ -6,8 +6,21 @@ CUDA Stream Compaction
 * Name: Jiahao Liu
 * Tested on: Windows 10, i7-3920XM CPU @ 2.90GHz 3.10 GHz 16GB, GTX 980m SLI 8192MB (personal computer)
 
-### Features implemented
+### Project Description and features implemented
 
+* Project Description
+
+This project is tend to compare running performance difference in computing prefix sum between CPU scan, naive GPU scan, efficient GPU scan and thrust scan.
+
+* Project implemented
+
+** CPU scan
+
+** Naive GPU scan with shared memory
+
+** Efficient GPU scan
+
+** Thrust scan
 
 ### Performance Analysis
 
