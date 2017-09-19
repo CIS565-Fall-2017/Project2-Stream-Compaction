@@ -38,8 +38,6 @@ For the benchmark and result, please check **Performance** section
 #### Radix Sort
 One of the most significant application for GPU scan is radix sort which is a sorting algorithm for parallel processors.  
 
-![]()
-
 To use radix sort function, please call the function below:
 ```c++
 StreamCompaction::Radix::sort(int n, int *odata, int *idata);
@@ -95,7 +93,8 @@ Based on large number (larger than 2^20) benchmark result. The optimize block si
 
 #### Compare all of these GPU Scan implementations (Naive, Work-Efficient, and Thrust) to the serial CPU version of Scan. Plot a graph of the comparison
 
+For Thrust implementation, the highest occupancy in GPU is cudaMalloc and cudaMemcpy related function calls based on Nsight Timeline. However, there are three most significant functions in Thrust scan *accumlate_tiles*, *exculsive_scan_n* and *exclusive_downsweep* are not really use too much GPU time.
+
+I believe the performance bottlenecks is memory bandwidth for Thrust scan. The computation time compare to memory I/O time is trivial. As for my implementation, the efficient method waste a huge amount of time on launching non-working threads. For efficient with optimization, the memory I/O become the most inefficient factor in whole system.  By using shared memory can highly increase memory I/O efficiency and decrease memory latency to achieve maximum efficiency.
+
 For the benchmark and graph, please check **Performance** section
-
-
-

@@ -56,6 +56,7 @@ int main(int argc, char* argv[]) {
     // initialize b using StreamCompaction::CPU::scan you implement
     // We use b for further comparison. Make sure your StreamCompaction::CPU::scan is correct.
     // At first all cases passed because b && c are all zeroes.
+	
     zeroArray(SIZE, b);
     printDesc("cpu scan, power-of-two");
     StreamCompaction::CPU::scan(SIZE, b, a);
@@ -124,7 +125,7 @@ int main(int argc, char* argv[]) {
 	printElapsedTime(StreamCompaction::Efficient::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
 	//printArray(NPOT, c, true);
 	printCmpResult(NPOT, b, c);
-
+	
 
     zeroArray(SIZE, c);
     printDesc("thrust scan, power-of-two");
@@ -139,7 +140,7 @@ int main(int argc, char* argv[]) {
     printElapsedTime(StreamCompaction::Thrust::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
     //printArray(NPOT, c, true);
     printCmpResult(NPOT, b, c);
-
+	
     printf("\n");
     printf("*****************************\n");
     printf("** STREAM COMPACTION TESTS **\n");
