@@ -68,3 +68,8 @@ So I found a way to scale the index to make up for the reduced number of threads
 The CPU implementation of compaction is extremely simple; append nonzero elements to an ongoing list / array. Emulating the GPU process using scan and scatter was very inefficient. Despite this, GPU compaction is faster than the CPU implementation at a high number of elements.
 
 For 2^18 elements, CPU, CPU scan and GPU solved in 1.3864, 4.8756, and 1.0340 milliseconds, respectively. 
+
+
+### Example Output:
+
+![](./img/Capture.PNG)
