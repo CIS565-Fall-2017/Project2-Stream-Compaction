@@ -12,15 +12,15 @@ CUDA Stream Compaction
 
 This project is tend to compare running performance difference in computing prefix sum between CPU scan, naive GPU scan, efficient GPU scan and thrust scan.
 
-* Project implemented
+* Features implemented
 
-** CPU scan
+CPU scan
 
-** Naive GPU scan with shared memory
+Naive GPU scan with shared memory
 
-** Efficient GPU scan
+Efficient GPU scan
 
-** Thrust scan
+Thrust scan
 
 ### Performance Analysis
 
