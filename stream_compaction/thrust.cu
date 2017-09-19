@@ -14,20 +14,30 @@ namespace StreamCompaction {
       static PerformanceTimer timer;
       return timer;
     }
+
+    int *dev_idata;
+    int *dev_odata;
+
     /**
      * Performs prefix-sum (aka scan) on idata, storing the result into odata.
      */
     void scan(int n, int *odata, const int *idata) {
-      thrust::device_vector<int> dev_idata(n);
-      thrust::device_vector<int> dev_odata(n);
+      cudaMalloc((void**)&dev_idata, n * sizeof(int));
+      cudaMalloc((void**)&dev_odata, n * sizeof(int));
 
-      thrust::copy(idata, idata + n, dev_idata.begin());
+      cudaMemcpy(dev_idata, idata, n * sizeof(int), cudaMemcpyHostToDevice);
+
+      thrust::device_ptr<int> dev_thrust_idata(dev_idata);
+      thrust::device_ptr<int> dev_thrust_odata(dev_odata);
 
       timer().startGpuTimer();
-      thrust::exclusive_scan(dev_idata.begin(), dev_idata.end(), dev_odata.begin());
+      thrust::exclusive_scan(dev_thrust_idata, dev_thrust_idata + n, dev_thrust_odata);
       timer().endGpuTimer();
 
-      thrust::copy(dev_odata.begin(), dev_odata.end(), odata);
+      cudaMemcpy(odata, dev_odata, n * sizeof(int), cudaMemcpyDeviceToHost);
+
+      cudaFree(dev_idata);
+      cudaFree(dev_odata);
     }
   }
 }
