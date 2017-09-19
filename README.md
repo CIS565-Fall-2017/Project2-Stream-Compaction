@@ -61,6 +61,12 @@ Finally, in order to have a parallel benchmark to compare to, we use Thrust's im
 
 All of the measurements in the performance analysis EXCLUDE memory management (copy, allocations, free) operations whenever they are not necessary for the execution of the algorithm by itself.
 
+The Data used below is an averaged calculation over 2 trials.
+
+![](img/readme/ScanImplementationsData.png)
+
+#### Scan Data values
+
 ![](img/readme/ScanImplementation1.png)
 
 #### Scan Data Zoomed In to a lower Range
@@ -69,9 +75,15 @@ All of the measurements in the performance analysis EXCLUDE memory management (c
 
 #### Overall Scan Data
 
-![](img/readme/ScanImplementationsData.png)
+What we can immediately see is that the CPU scan is faster than all implementations for smaller array sizes but that advantage quickly fades past 100000 elements.
 
-#### Scan Data values
+Thrust is clearly the best choice for practical use this is because it makes use of shared memory and my guess is that it also has better indexing than our work efficient such that there are very few inactive threads in a block. I would also guess that it has logic to deal with bank conflicts.
+
+An interesting observation is that work-efficient does not equate to faster. We mentioned that our algorithm is more work-efficient because it only does O(N) work over the elements, but we have to invoke double the number of kernels in order to accomplish the scan. The Work Efficient Scan implementation also suffers from thread divergence; ie there are many idle threads on a warp bacause threads that arent a multiple of (2^d+1) do no work. 
+
+If we did some indexing magic we could rearrange the array such that all the threads that were previously doing work could be placed right next to each other leading to very little branch divergence (only for the last few threads when the number of elements being worked on is less than 32).
+
+There isn't much to say about Naive except that it doesn't lead to branch divergences and becomes better than the CPU implementation for larger array sizes.
 
 ### Test Results
 ```
