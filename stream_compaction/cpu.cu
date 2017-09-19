@@ -17,10 +17,19 @@ namespace StreamCompaction {
          * For performance analysis, this is supposed to be a simple for loop.
          * (Optional) For better understanding before starting moving to GPU, you can simulate your GPU scan in this function first.
          */
-        void scan(int n, int *odata, const int *idata) {
-	        timer().startCpuTimer();
-            // TODO
-	        timer().endCpuTimer();
+		void scan(int n, int *odata, const int *idata, bool time) {
+
+			if (time) timer().startCpuTimer();
+			odata[0] = idata[0];
+
+			for (int i = 1; i < n; i++) {
+				odata[i] = idata[i] + odata[i - 1];
+			}
+			if (time) timer().endCpuTimer();
+		}
+		
+		void scan(int n, int *odata, const int *idata) {
+			scan(n, odata, idata, true);
         }
 
         /**
@@ -29,10 +38,15 @@ namespace StreamCompaction {
          * @returns the number of elements remaining after compaction.
          */
         int compactWithoutScan(int n, int *odata, const int *idata) {
-	        timer().startCpuTimer();
-            // TODO
-	        timer().endCpuTimer();
-            return -1;
+			int output = 0;
+
+			timer().startCpuTimer();
+			for (int i = 0; i < n; i++) {
+				if (idata[i] != 0) odata[output++] = idata[i];
+			}
+			timer().endCpuTimer();
+
+			return output;
         }
 
         /**
@@ -41,10 +55,34 @@ namespace StreamCompaction {
          * @returns the number of elements remaining after compaction.
          */
         int compactWithScan(int n, int *odata, const int *idata) {
+
+			int *scanResults = new int[n];
+			int output = 0;
+
 	        timer().startCpuTimer();
-	        // TODO
+
+			//create binary array
+			for (int i = 0; i < n; i++) {
+				odata[i] = (idata[i] == 0) ? 0 : 1;
+			}
+
+			//inclusive
+			scan(n, scanResults, odata, false);
+			
+			//populate odata
+			//check if the 0th value was nonzero
+			if (scanResults[0] == 1) odata[0] = idata[0];
+			//check all subsequent values
+			for (int i = 1; i < n; i++) {
+				output = scanResults[i - 1];
+				if (scanResults[i] != output) odata[output] = idata[output];
+			}
+
 	        timer().endCpuTimer();
-            return -1;
+            
+			output = scanResults[n - 1];
+			delete[] scanResults;
+			return output;
         }
     }
 }

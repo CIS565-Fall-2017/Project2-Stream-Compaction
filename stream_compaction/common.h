@@ -26,6 +26,19 @@ inline int ilog2(int x) {
     return lg;
 }
 
+inline int int_pow(int base, int exp)
+{
+	int result = 1;
+	while (exp)
+	{
+		if (exp & 1)
+			result *= base;
+		exp /= 2;
+		base *= base;
+	}
+	return result;
+}
+
 inline int ilog2ceil(int x) {
     return ilog2(x - 1) + 1;
 }
