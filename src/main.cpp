@@ -22,6 +22,13 @@ int *c = new int[SIZE];
 int main(int argc, char* argv[]) {
     // Scan tests
 
+	//FILE * naiveScanPow;
+	//FILE * naiveScanNonPow;
+	//FILE * efficientScanPow;
+	//FILE * efficientScanNonPow;
+	//FILE * originalDataScan;
+	//FILE * originalDataCompact;
+
     printf("\n");
     printf("****************\n");
     printf("** SCAN TESTS **\n");
@@ -30,6 +37,13 @@ int main(int argc, char* argv[]) {
     genArray(SIZE - 1, a, 50);  // Leave a 0 at the end to test that edge case
     a[SIZE - 1] = 0;
     printArray(SIZE, a, true);
+
+	//originalDataScan = fopen("originalDataScan.txt", "w");
+	//for (int Count = 0;Count < SIZE;Count++)
+	//{
+	//	fprintf(originalDataScan, "%d\n", a[Count]);
+	//}
+	//fclose(originalDataScan);
 
     // initialize b using StreamCompaction::CPU::scan you implement
     // We use b for further comparison. Make sure your StreamCompaction::CPU::scan is correct.
@@ -53,6 +67,12 @@ int main(int argc, char* argv[]) {
     printElapsedTime(StreamCompaction::Naive::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
     //printArray(SIZE, c, true);
     printCmpResult(SIZE, b, c);
+	//naiveScanPow = fopen("NaiveResultPower.txt", "w");
+	//for (int iCount = 0;iCount < SIZE;iCount++)
+	//{
+	//	fprintf(naiveScanPow, "%5d\n", c[iCount]);
+	//}
+	//fclose(naiveScanPow);
 
     zeroArray(SIZE, c);
     printDesc("naive scan, non-power-of-two");
@@ -60,6 +80,13 @@ int main(int argc, char* argv[]) {
     printElapsedTime(StreamCompaction::Naive::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
     //printArray(SIZE, c, true);
     printCmpResult(NPOT, b, c);
+
+	//naiveScanNonPow = fopen("NaiveResultNonPower.txt", "w");
+	//for (int jCount = 0;jCount < NPOT;jCount++)
+	//{
+	//	fprintf(naiveScanNonPow, "%5d\n",  c[jCount]);
+	//}
+	//fclose(naiveScanNonPow);
 
     zeroArray(SIZE, c);
     printDesc("work-efficient scan, power-of-two");
@@ -100,6 +127,13 @@ int main(int argc, char* argv[]) {
     a[SIZE - 1] = 0;
     printArray(SIZE, a, true);
 
+	//originalDataCompact = fopen("originalDataCompact.txt", "w");
+	//for (int cCount = 0;cCount < SIZE;cCount++)
+	//{
+	//	fprintf(originalDataCompact, "%d\n", a[cCount]);
+	//}
+	//fclose(originalDataCompact);
+
     int count, expectedCount, expectedNPOT;
 
     // initialize b using StreamCompaction::CPU::compactWithoutScan you implement
@@ -134,12 +168,26 @@ int main(int argc, char* argv[]) {
     //printArray(count, c, true);
     printCmpLenResult(count, expectedCount, b, c);
 
+	//efficientScanPow = fopen("EfficientPower.txt", "w");
+	//for (int kCount = 0;kCount < count;kCount++)
+	//{
+	//	fprintf(efficientScanPow, "%5d\n", c[kCount]);
+	//}
+	//fclose(efficientScanPow);
+
     zeroArray(SIZE, c);
     printDesc("work-efficient compact, non-power-of-two");
     count = StreamCompaction::Efficient::compact(NPOT, c, a);
     printElapsedTime(StreamCompaction::Efficient::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
     //printArray(count, c, true);
     printCmpLenResult(count, expectedNPOT, b, c);
+
+	//efficientScanNonPow = fopen("EfficientNonPower.txt", "w");
+	//for (int lCount = 0;lCount < count;lCount++)
+	//{
+	//	fprintf(efficientScanNonPow, "%5d\n", c[lCount]);
+	//}
+	//fclose(efficientScanNonPow);
 
     system("pause"); // stop Win32 console from closing on exit
 	delete[] a;
