@@ -93,7 +93,7 @@ I noticed I could invoke my up-sweep and down-sweep kernels with a different num
 I implemented a GPU radix sort using my work-efficient GPU scan with global memory. It may be invoked with:
 
 `
-StreamCompaction::RadixSort::radixSort(size, out, in, ascending);
+StreamCompaction::RadixSort::radixSort(size, out, in, true);
 `
 
 The radix sort is tested in the main test program by comparing its output with std::sort. Below is a graph comparing the runtimes of the GPU radix sort and the CPU std::sort:
