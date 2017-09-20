@@ -108,7 +108,43 @@ As the plot above shows, `thrust::scan` is more efficient than the scan methods 
 ```
 ## Extra Credit
 * *Efficient scan optimization*
-Compared to the basic algorithm, I optimize the kernUpsweep 
+Compared to the basic algorithm, I optimize the `kernUpsweep` and `kernDownsweep` function by reducing the branches in it. 
+Instead of judging whether the current index is the power of 2, I computer the index we need to deal with directly.
+
+	__global__ void KernUpSweep(int d, int *idata, int nodeNum)
+		{
+			int idx = (blockIdx.x * blockDim.x) + threadIdx.x;
+			if (idx >= nodeNum)	return;
+			idata[(idx + 1)*(1 << (d + 1)) - 1] += idata[idx*(1 << (d + 1)) + (1 << d) - 1];
+		}
+
+	__global__ void KernDownSweep(int d, int *idata, int nodeNum)
+	{
+		int idx = (blockIdx.x * blockDim.x) + threadIdx.x;
+		if (idx >= nodeNum)	return;
+		int nodeIdx = idx*(1 << (d + 1)) + (1 << d) - 1;
+		int temp = idata[nodeIdx];
+		idata[nodeIdx] = idata[nodeIdx + (1 << d)];
+		idata[nodeIdx + (1 << d)] += temp;
+	}
+	
+Call kernal function:
+	for (int d = 0; d < layer; d++)
+	{
+		int nodeNum = 1 << (layer - 1 - d);
+		int blocknum = nodeNum / threadPerBlock + 1;
+		KernUpSweep << <blocknum, threadPerBlock >> >(d, dev_Data, nodeNum);
+	}
+	cudaMemset(dev_Data + oLength - 1, 0, sizeof(int));
+	checkCUDAError("cudaMemset failed!");
+	for (int d = layer - 1; d >= 0; d--)
+	{
+		int nodeNum = 1 << (layer - 1 - d);
+		int blocknum = nodeNum / threadPerBlock + 1;
+		KernDownSweep << <blocknum, threadPerBlock >> >(d, dev_Data, nodeNum);
+	}
+
+
 
 
 
