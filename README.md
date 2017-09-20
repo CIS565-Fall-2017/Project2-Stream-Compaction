@@ -66,5 +66,4 @@ Ju Yang
   #### 1. When using multiple blocks, sometimes the result is not right. I think it is because __syncthreads() doesn't sync blocks?
   #### 2. Since I used only 1 block, when the SIZE is more than 1024(which is the limit), apperently the result is wrong. 
   #### 3. CPU performace is much better, and sometimes the calculating time doesn't always raise with the SIZE. 
-           
-          I think this is because the SIZE is still not large enough? 
+           I think this is because the SIZE is still not large enough? 
