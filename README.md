@@ -40,7 +40,7 @@ The stream compaction algorithm start by creating a temporary boolean array wher
 
 #### Radix Sort
 
-The parallel implementation for radix sort begins similarly to the above stream compaction algorithm. First for bit *k*, a temporary boolean array *b* is created where is element is *0* if the *k*-th bit in the input array is *1* and visa versa. A scan is run on this boolean array. Next the total number of falses (or the number of values whose *k*-th bit is *0*) is calculated by summing the last element in the boolean array and the scanned result of this boolean array. This value is used to create another array *t* where each value at index *i* is equal to * i - s[i] + totalFalses * where *s* is the scanned array. The last array to be computed contains the indices of each input element in the array sorted by *k*-th bit. The values in this array are equal to *b[i] ? f[i] : t[i]*. While this algorithm requires multiple passes and new arrays, it is not necessary to allocate space for each step. Some steps can be done in place, and later steps can overwrite previous ones once they are no longer needed. 
+The parallel implementation for radix sort begins similarly to the above stream compaction algorithm. First for bit *k*, a temporary boolean array *b* is created where is element is *0* if the *k*-th bit in the input array is *1* and visa versa. A scan is run on this boolean array. Next the total number of falses (or the number of values whose *k*-th bit is *0*) is calculated by summing the last element in the boolean array and the scanned result of this boolean array. This value is used to create another array *t* where each value at index *i* is equal to *i - s[i] + totalFalses* where *s* is the scanned array. The last array to be computed contains the indices of each input element in the array sorted by *k*-th bit. The values in this array are equal to *b[i] ? f[i] : t[i]*. While this algorithm requires multiple passes and new arrays, it is not necessary to allocate space for each step. Some steps can be done in place, and later steps can overwrite previous ones once they are no longer needed. 
 
 *Images taken from GPU Gems 3, Chapter 39*
 
@@ -152,7 +152,7 @@ Much like scan and compaction, GPU radix sort performs faster for large array si
 ### Q&A
 
 #### Compare GPU Scan implementations to the serial CPU version?
-The GPU version performs better for scan, stream compaction, and radix sort for large arrays (SIZE < 2^[18]). Since the intersection between the CPU and GPU methods occurs at the same sized array, it suggests that the slow GPU performance for small arrays is based on a overhead required for creating and distributing threads. One that is only surpassed with large arrays.  
+The GPU version performs better for scan, stream compaction, and radix sort for large arrays (*SIZE < 2^[18]*). Since the intersection between the CPU and GPU methods occurs at the same sized array, it suggests that the slow GPU performance for small arrays is based on a overhead required for creating and distributing threads. One that is only surpassed with large arrays.  
 
 #### Where are the performance bottlenecks?
 For the work efficient implementation, the upsweep and downsweep kernel functions require a similar amount of time, because they have the same ratio of compute to memory instructions. Most time is spent in memory reads and writes, but since there are not many of either type of instruction, it is not possible to space out the memory instructions with computations. 
