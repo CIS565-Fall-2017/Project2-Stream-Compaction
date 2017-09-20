@@ -4,6 +4,8 @@
 #include "naive.h"
 #include "device_launch_parameters.h"
 
+#define SECTION_SIZE 4
+
 namespace StreamCompaction {
     namespace Naive {
         using StreamCompaction::Common::PerformanceTimer;
@@ -12,6 +14,14 @@ namespace StreamCompaction {
             static PerformanceTimer timer;
             return timer;
         }
+
+		__global__ void kernNaivSham(int *x, int*y, int n)
+		{
+			__shared__ int xy[SECTION_SIZE];
+
+			int i = blockIdx.x * blockDim.x + threadIdx.x;
+			if (i < n) xy[threadIdx.x] = x[i];
+		}
         
 		__global__ void kernScanNaive(int N, int stride, int *odata, const int *idata)
 		{
@@ -43,7 +53,7 @@ namespace StreamCompaction {
          */
         void scan(int n, int *odata, const int *idata) {
 			//Dimensions
-			int blockSize = 256;
+			int blockSize = 1024;
 			int depth = ilog2ceil(n);
 			int blocksPerGrid = (n + blockSize - 1) / blockSize;
 
@@ -55,6 +65,7 @@ namespace StreamCompaction {
 			cudaMalloc(&dev_idata, n * sizeof(int));
 			cudaMalloc(&dev_odata, n * sizeof(int));
 			cudaMemcpy(dev_idata, idata, n * sizeof(int), cudaMemcpyHostToDevice);
+
 
 			timer().startGpuTimer();
 
