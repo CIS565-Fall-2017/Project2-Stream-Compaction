@@ -51,9 +51,9 @@ Ju Yang
  ### Scanning
  ![result](doc/image001.gif)
  ### Thrust Scanning
- ![result](data_29123_image001.gif)
+ ![result](doc/data_29123_image001.gif)
  ### Compact
- ![result](data_6317_image001.gif)
+ ![result](doc/data_6317_image001.gif)
  
 ## Analysis
  ### Thrust
