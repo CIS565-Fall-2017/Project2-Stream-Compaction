@@ -19,6 +19,9 @@
 void checkCUDAErrorFn(const char *msg, const char *file = NULL, int line = -1);
 
 inline int ilog2(int x) {
+	if (x < 0) {
+		return 0;
+	}
     int lg = 0;
     while (x >>= 1) {
         ++lg;
