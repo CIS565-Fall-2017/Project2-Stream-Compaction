@@ -36,6 +36,14 @@ namespace StreamCompaction {
 			idataRounded[i] = i >= n ? 0 : idata[i];
 		}
 
+		__global__ void kern_scan_shared(int n, int *odata, const int *idata) {
+
+			extern __shared__ float temp[];
+
+
+			
+		}
+
 		/**
 		* Performs prefix-sum (aka scan) on idata, storing the result into odata.
 		*
@@ -43,7 +51,7 @@ namespace StreamCompaction {
 		*/
 		void scan_shared(int n, int *odata, const int *idata) {
 			// Super Hyperthreaded Information Transloading calculation for threads per block
-			dim3 threadsPerBlock(std::max(getThreadsPerBlock(), n));
+			dim3 threadsPerBlock(std::min(getThreadsPerBlock(), n));
 			dim3 numBlocks(std::ceilf(((float)n / threadsPerBlock.x)));
 
 
@@ -55,7 +63,7 @@ namespace StreamCompaction {
          */
         void scan(int n, int *odata, const int *idata) {
 			// Super Hyperthreaded Information Transloading calculation for threads per block
-			dim3 threadsPerBlock(std::max(getThreadsPerBlock(), n));
+			dim3 threadsPerBlock(std::min(getThreadsPerBlock(), n));
 			dim3 numBlocks(std::ceilf(((float)n / threadsPerBlock.x)));
 
 			//Round Up
@@ -122,7 +130,7 @@ namespace StreamCompaction {
 			try { timer().startGpuTimer(); }
 			catch (...) {};
 			// Super Hyperthreaded Information Transloading calculation for threads per block
-			dim3 threadsPerBlock(std::max(getThreadsPerBlock(), n));
+			dim3 threadsPerBlock(std::min(getThreadsPerBlock(), n));
 			dim3 numBlocks(std::ceilf(((float)n / threadsPerBlock.x)));
 
             // Create Buffers

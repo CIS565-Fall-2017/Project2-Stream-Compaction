@@ -13,6 +13,9 @@
 #define FILENAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #define checkCUDAError(msg) checkCUDAErrorFn(msg, FILENAME, __LINE__)
 
+//All of the following calculations were done for my GTX 1050 and 
+//they will probably not work with most other non 6.1CC GPU's
+
 // "x" in my master equation
 #define MEM_PER_THREAD 4
 
@@ -24,6 +27,9 @@
 
 // A muting term that tones done the optimality
 #define TONE_DOWN 0.85f
+
+//The number of warps on this GPU
+#define WARP_SIZE 32
 
 /**
  * Check for CUDA errors; print and exit if there was a problem.

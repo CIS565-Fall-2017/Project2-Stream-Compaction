@@ -37,7 +37,7 @@ namespace StreamCompaction {
         void scan(int n, int *odata, const int *idata) {
             timer().startGpuTimer();
             // Super Hyperthreaded Information Transloading calculation for threads per block
-			dim3 threadsPerBlock(std::max(getThreadsPerBlock(), n));
+			dim3 threadsPerBlock(std::min(getThreadsPerBlock(), n));
 			dim3 numBlocks(std::ceilf(((float) n / threadsPerBlock.x)  ));
 
 			//New GPU Buffers
