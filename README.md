@@ -114,8 +114,8 @@ As the plot above shows, `thrust::scan` is more efficient than the scan methods 
 
 * *Efficient scan optimization*
 
-Compared to the basic algorithm, I optimize the `kernUpsweep` and `kernDownsweep` function by reducing the branches in it. 
-Instead of judging whether the current index is the power of 2, I computer the index we need to deal with directly.
+Compared to the basic algorithm, I optimize the `kernUpsweep` and `kernDownsweep` kernal function by reducing the branches in it. Instead of judging whether the current index is the power of 2, I computer the index we need to deal with directly.
+
 ```
 __global__ void KernUpSweep(int d, int *idata, int nodeNum)
 	{
