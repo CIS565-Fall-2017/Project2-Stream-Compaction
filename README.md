@@ -134,7 +134,7 @@ Now because this is fairly abstract, I made a visualization of the algorithm run
 *Visualized:*
 
 
-![This animation took longer to make than it did to code](/images/radix.gif)
+![This animation took longer to make than it did to code](/img/radix.gif)
 
 As far as runtimes go for this, they were actually closer to O(n), which is fairly accurate considering that is the runtime for radix sort. However, this should be faster. My guess is that this was because of the global memory that was being accessed back and forth. This also probably contributed to the increase in ~4ms around all array sizes. Here are the runtimes:
 
