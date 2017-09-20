@@ -88,19 +88,19 @@ namespace StreamCompaction {
 		void newkernScan(int m, int o, int* dev_idata)
 		{
 			dim3 fullBlocksPerGrid;//((o + blockSize - 1) / blockSize);
-			int inter;
+			int p2;
 			for (int i = 0; i < m; i++)
 			{
-				inter = 1 << (i + 1);
-				fullBlocksPerGrid = ((o / inter + blockSize - 1) / blockSize);
-				newkernScanUp << <fullBlocksPerGrid, blockSize >> >(o / inter, i, dev_idata);
+				p2 = 1 << (i + 1);
+				fullBlocksPerGrid = ((o / p2 + blockSize - 1) / blockSize);
+				newkernScanUp << <fullBlocksPerGrid, blockSize >> >(o / p2, i, dev_idata);
 			}
 			cudaMemset(dev_idata + o - 1, 0, sizeof(int));
 			for (int i = m - 1; i > -1; i--)
 			{
-				inter = 1 << (i + 1);
-				fullBlocksPerGrid = ((o / inter + blockSize - 1) / blockSize);
-				newkernScanDown << <fullBlocksPerGrid, blockSize >> >(o / inter, i, dev_idata);
+				p2 = 1 << (i + 1);
+				fullBlocksPerGrid = ((o / p2 + blockSize - 1) / blockSize);
+				newkernScanDown << <fullBlocksPerGrid, blockSize >> >(o / p2, i, dev_idata);
 			}
 		}
 
