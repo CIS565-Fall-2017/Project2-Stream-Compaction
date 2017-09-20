@@ -18,10 +18,19 @@ namespace StreamCompaction {
          * (Optional) For better understanding before starting moving to GPU, you can simulate your GPU scan in this function first.
          */
         void scan(int n, int *odata, const int *idata) {
-	        timer().startCpuTimer();
-            // TODO
-	        timer().endCpuTimer();
+			timer().startCpuTimer();
+			//TODO
+			scanImplementation(n, odata, idata);
+			timer().endCpuTimer();
+
         }
+
+		void scanImplementation(int n, int *odata, const int *idata) {
+			odata[0] = 0;
+			for (int i = 1; i < n; ++i) {
+				odata[i] = idata[i - 1] + odata[i - 1];
+			}
+		}
 
         /**
          * CPU stream compaction without using the scan function.
@@ -30,9 +39,15 @@ namespace StreamCompaction {
          */
         int compactWithoutScan(int n, int *odata, const int *idata) {
 	        timer().startCpuTimer();
-            // TODO
+			int count = 0;
+			for (int i = 0; i < n; i++) {
+				if (idata[i] != 0) {
+					odata[count] = idata[i];
+					count++;
+				}
+			}
 	        timer().endCpuTimer();
-            return -1;
+            return count;
         }
 
         /**
@@ -41,10 +56,29 @@ namespace StreamCompaction {
          * @returns the number of elements remaining after compaction.
          */
         int compactWithScan(int n, int *odata, const int *idata) {
-	        timer().startCpuTimer();
-	        // TODO
+			timer().startCpuTimer();
+			int *temp = new int[n];
+			int *temp2 = new int[n];
+			for (int i = 0; i < n; i++) {
+				if (idata[i] != 0) {
+					temp[i] = 1;
+				}
+				else {
+					temp[i] = 0;
+				}
+				temp2[i] = 0;
+			}
+			scanImplementation(n, temp2, temp);
+			for (int i = 0; i <= n; i++) {
+				if (temp[i] == 1) {
+					odata[temp2[i]] = idata[i];
+				}
+			}
+			int count = temp2[n - 1];
+			delete[] temp;
+			delete[] temp2;
 	        timer().endCpuTimer();
-            return -1;
+			return count;
         }
     }
 }
