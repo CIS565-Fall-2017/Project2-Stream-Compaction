@@ -15,7 +15,7 @@
 #include <stream_compaction/radixSort.h>
 #include "testing_helpers.hpp"
 
-const int SIZE = 1 << 20; // feel free to change the size of array
+const int SIZE = 1 << 18; // feel free to change the size of array
 const int NPOT = SIZE - 3; // Non-Power-Of-Two
 int a[SIZE], b[SIZE], c[SIZE], sorted[SIZE];
 
@@ -28,7 +28,8 @@ int main(int argc, char* argv[]) {
     printf("** SCAN TESTS **\n");
     printf("****************\n");
 
-    genArray(SIZE - 1, a, 50);  // Leave a 0 at the end to test that edge case
+    for (int i = 0; i < SIZE - 1; i++) a[i] = 2 * i;
+    //genArray(SIZE - 1, a, 50);  // Leave a 0 at the end to test that edge case
     a[SIZE - 1] = 0;
     printArray(SIZE, a, true);
 
