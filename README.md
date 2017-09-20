@@ -45,6 +45,6 @@ threads as needed). In the following graph, we can see that this optimization is
 
 Now the work-efficient parallel scan is good, but still, the 3rd party Thrust implementation still by far outperforms all other implementations (as you can see in the first graph too):
 
-![](graphGPU.png)
+![](img/graphGPU.png)
 
 There are further optimizations that can be added to the work-efficient parallel scan that can help it compete with Thrust, such as utilizing shared memory, but they weren't completed for this project (yet!).
