@@ -34,11 +34,11 @@ The size of array was increased incrementally with a magnitude of 2^4. The trans
 
 Tested on array size of 512
 
-![](img/scanRes.png)
+![](img/resScan.png)
 
 ### Stream Compaction Results
 -----------------------------
 
 Tested on array size of 512
 
-![](img/compactRes.png)
+![](img/resCompact.png)
