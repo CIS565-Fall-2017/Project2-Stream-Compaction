@@ -25,15 +25,24 @@ The stream compaction algorithm breaks down into a scan function and a compat fu
 The following descriptions dive a bit deeper into the different approaches:
 
 ### CPU
-* `n - 1` adds for an array of length `n`
+* `n - 1` adds for an array of length `n` --> O(n) number of adds
+
 
 ### Naive Parallel
+* log2(n) passes on n elements --> O(n log2 (n)) numer of adds
 
 
 ### Work-Efficient
+* This algorithm organizes the data into a balanced binary tree
+* The occurs in two phases: 
+	- Up-sweep = implementing parallel reduction 
+	- Down-sweep = traversing back down the tree using partial sums to build the scan in place
+* Up Sweep = O(n - 1) adds
+* Down Sweep = O(n - 1) adds, O(n - 1) swaps
 
 
 ### Thrust-Based
+* The Thrust library has a function "Thrust::exclusive_scan()" that we use to compare the above algorithms to.
 
 
 ## Performance Analysis 
@@ -57,6 +66,28 @@ Below are charts showing tests across all 4 algorithms, both testing with power-
 
 ![](images/algorithmcomparisontable.PNG)
 
+
+First things first - why is the GPU implementation so much slower than the Naive Parallel and CPU versions? Isn't the GPU supposed to be faster? 
+
+Take a look at the example diagram of a down sweep process below. 
+
+![](images/upsweep.PNG)
+
+After iteration 0, only 4 out of the 8 elements are being computed and written to the output array. After iteration 1, only two are being computed and written, and after iteration 2, only one final answer is being outputted. 
+
+Within each iteration, the same number of blocks are being launched. Essentially, every index is being allocated a block of memory (aka 32 threads). However, only one thread in 4 blocks for iteration 0, 2 blocks for iteration 1, and 1 block for iteration 2 are actually being used. This means that at least 4 blocks are not being used at all per iteration, and most of the threads per block are not even doing any work. So, really, the actual power of the GPU isn't being used at all. 
+
+In order to optimize the code, it would be better to try and allocate only the necessary blocks needed per iteration, and to try and push computation to be done on earlier threads to achieve early termination of the block. In this example, this means that at iteration 0: 
+
+* Having the computation and write at index 1 use thread #0 instead of thread #1
+* Having the computation and write at index 3 use thread #1 instead of thread #3
+* Having the computation and write at index 5 use thread #2 instead of thread #5
+* Having the computation and write at index 7 use thread #3 instead of thread #7
+
+This way you only use the number of threads required and push them to be the first couple of ones so that the block can retire early and be used elsewhere. 
+
+
+Despite this explanation, it can be seen that Thrust implementation, up until size power of 14, becomes more efficient with increasing array size. It's interesting to note that there's a drastic increase in computation time across all algorithms with array size power of 14 and above.
 
 
 ### Scan and Stream Compaction Test Results
