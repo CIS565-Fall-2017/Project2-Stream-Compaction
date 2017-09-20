@@ -19,7 +19,7 @@ Part 1 ~ 4, includes:
 
 Extra Credit:
 
-* Part 5 implemented. After testing the Work-Efficient method with other ones, I find that it's even slower than the CPU one, that's because There are lots of threads that are not used due to the branches, which I have removed in new functions. Check  **newkernScanUp**, **newkernScanDown** and **newkernScan** (compared with **kernScanUp**, **kernScanDown** and **kernScan**) in efficient.cu for more details.
+* Part 5 implemented. After testing the Work-Efficient method with other ones, I find that it's even slower than the CPU one, that's because there are lots of threads that are not used due to the branches, which I have removed in new functions. Check  **newkernScanUp**, **newkernScanDown** and **newkernScan** (compared with **kernScanUp**, **kernScanDown** and **kernScan**) in efficient.cu for more details.
 * I use the new Work-Efficient method without branches in the following analysis to show its "efficiency" better.
 
 
@@ -44,7 +44,7 @@ The array size is 2^20 in the test above. We can tell from the data that after t
 
 ![](img/scanarraysize.png)
 
-| Array size | Cpu scan, power-of-two | Cpu scan, non-power-of-two | Naive scan, power-of-two | Naive scan, non-power-of-two | Work-efficient scan, power-of-two | Work-efficient scan, non-power-of-two | Thrust scan, power-of-two | Thrust scan, non-power-of-two |
+| Array size | CPU scan, power-of-two | CPU scan, non-power-of-two | Naive scan, power-of-two | Naive scan, non-power-of-two | Work-efficient scan, power-of-two | Work-efficient scan, non-power-of-two | Thrust scan, power-of-two | Thrust scan, non-power-of-two |
 |:------------|:------------------------|:----------------------------|:--------------------------|:------------------------------|:-----------------------------------|:---------------------------------------|:---------------------------|:-------------------------------|
 | 2^8        | 0.00079                | 0.000395                   | 0.046112                 | 0.035296                     | 0.106176                          | 0.074688                              | 0.03664                   | 0.013728                      |
 | 2^10       | 0.001975               | 0.001975                   | 0.047552                 | 0.055584                     | 0.106112                          | 0.098848                              | 0.023136                  | 0.013696                      |
@@ -60,7 +60,7 @@ The array size is 2^20 in the test above. We can tell from the data that after t
 
 ![](img/compactarraysize.png)
 
-| Array size | Cpu compact without scan, power-of-two | Cpu compact without scan, non-power-of-two | Cpu compact with scan | Work-efficient compact, power-of-two | Work-efficient compact, non-power-of-two |
+| Array size | CPU compact without scan, power-of-two | CPU compact without scan, non-power-of-two | CPU compact with scan | Work-efficient compact, power-of-two | Work-efficient compact, non-power-of-two |
 |:------------|:----------------------------------------|:--------------------------------------------|:-----------------------|:--------------------------------------|:------------------------------------------|
 | 2^8        | 0.001185                               | 0.001186                                   | 0.003951              | 0.094752                             | 0.093824                                 |
 | 2^10       | 0.00395                                | 0.00316                                    | 0.024493              | 0.176832                             | 0.10768                                  |
@@ -74,20 +74,20 @@ The array size is 2^20 in the test above. We can tell from the data that after t
 
 We can tell from the data above that in both scan and stream compaction:
 
-* When the array size < 2^16, CPU method is still faster than GPU version. Elapsed time used: Cpu < Thrust < Naive < Work-efficient;
-* When the array size > 2^16, parallel computation in GPU is better when the number of elements is very large. Elapsed time used: Thrust < Work-efficient < Naive < Cpu;
+* When the array size < 2^16, CPU method is still faster than GPU version. Elapsed time used: CPU < Thrust < Naive < Work-efficient;
+* When the array size > 2^16, parallel computation in GPU is better when the number of elements is very large. Elapsed time used: Thrust < Work-efficient < Naive < CPU;
 
 ## Questions
 
 * Roughly optimize the block sizes of each of your implementations for minimal run time on your GPU.
   
-  Check [**Performance analysis**](##Performance analysis) for graph comparison. 
+  Check [**Performance analysis**](#performance-analysis) for graph comparison. 
   
   As I mentioned above, there is no major performance difference between different blocksize.
 
 * Compare all of these GPU Scan implementations (Naive, Work-Efficient, and Thrust) to the serial CPU version of Scan. Plot a graph of the comparison (with array size on the independent axis).
   
-  Check [**Performance analysis**](##Performance analysis) for graph comparison.
+  Check [**Performance analysis**](#performance-analysis) for graph comparison.
   
   In conclusion, when the array size is not to huge, CPU implementation is always better than GPU versions. However, if the array size is very huge, the parallel computation in GPU is faster. Also, Thrust method is always very stable no matter how the size of array changes.
   
@@ -101,7 +101,7 @@ We can tell from the data above that in both scan and stream compaction:
 
 * Paste the output of the test program into a triple-backtick block in your README.
   
-  Check [**Output**](#Output).
+  Check [**Output**](#output).
 
 ## Output
 
