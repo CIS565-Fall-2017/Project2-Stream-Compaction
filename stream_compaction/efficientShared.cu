@@ -85,7 +85,7 @@ namespace StreamCompaction {
          * for example, in compact. If so, it assumes idata and odata are in
          * device memory and does not use gpuTimer.
          */
-        void scan(int n, int *odata, const int *idata, bool internalUse) {
+        void scan(int n, int *odata, const int *idata) {
           if (n == 1) {
             odata[0] = 0;
             return;

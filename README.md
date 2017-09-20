@@ -84,6 +84,28 @@ We can clearly see that using the much faster on-chip shared memory greatly impr
 
 Unfortunately, this specific implementation is limited in that it only correctly runs if executed in a single block. It is definitely possible to expand this to use multiple blocks ("scan of scans"), though.
 
+### Optimization to improve work-efficient GPU approach ("Part 5")
+
+I noticed I could invoke my up-sweep and down-sweep kernels with a different number of blocks and threads per block at each iteration, since each iteration operates on a different number of elements in the array. This, together with a calculation of a "nodeIdx" in those kernels, allow me to invoke fewer kernels when the algorithm allows for it (i.e. when the sweeps are closer to the root).
+
+### Radix Sort ("Part 6")
+
+I implemented a GPU radix sort using my work-efficient GPU scan with global memory. It may be invoked with:
+
+`
+StreamCompaction::RadixSort::radixSort(size, out, in, ascending);
+`
+
+### GPU scan with shared memory ("Part 7")
+
+The performance of the work-efficient GPU scan with shared memory has been analyzed above. It may be invoked as follows:
+
+`
+StreamCompaction::EfficientShared::scan(size, out, in);
+`
+
+In my GPU, it can only handle arrays of size up to 2^11.
+
 ### Output of test program
 
 The output below was generated with an array size of 2^20. It includes tests for the **GPU radix sort**, but not the work-efficient with shared memory GPU scan, due to limited memory.
@@ -250,3 +272,10 @@ The output below was generated with a size of 2^10, and does include the **share
     passed
 Press any key to continue . . .
 ```
+
+### Miscellaneous details
+
+I added a "dummy" run of Thrust's scan at the beginning of the test. Nothing is printed or checked from this test, but it is used to avoid a problem where the runtime of the first run of Thrust's scan is much higher than it should be (on the order of tens of milliseconds).
+
+The naive and work-efficient, global memory GPU scans take an optional parameter `internalUse` that specifies whether the scan will be used on its own, or as part of another GPU algorithm, such as compact or radix sort.
+

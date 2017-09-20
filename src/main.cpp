@@ -166,7 +166,7 @@ int main(int argc, char* argv[]) {
     printf("** SORT TESTS **\n");
     printf("****************\n");
 
-    genArray(SIZE - 1, a, 256);  // Leave a 0 at the end to test that edge case
+    genArray(SIZE - 1, a, 257);  // Leave a 0 at the end to test that edge case
     a[SIZE - 1] = 0;
     printArray(SIZE, a, true);
 
