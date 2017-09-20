@@ -19,9 +19,7 @@ namespace StreamCompaction {
          */
         void scan(int n, int *odata, const int *idata) {
 
-			thrust::host_vector<int> host_idata(n);
-
-			thrust::device_vector<int> dev_idata = host_idata;
+			thrust::device_vector<int> dev_idata(n);
 			thrust::device_vector<int> dev_odata(n);
 
 			// Copy host to device

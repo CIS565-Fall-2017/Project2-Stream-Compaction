@@ -56,10 +56,9 @@ namespace StreamCompaction {
          * @returns the number of elements remaining after compaction.
          */
         int compactWithScan(int n, int *odata, const int *idata) {
+			timer().startCpuTimer();
 			int *temp = new int[n];
 			int *temp2 = new int[n];
-			timer().startCpuTimer();
-	        // TODO
 			for (int i = 0; i < n; i++) {
 				if (idata[i] != 0) {
 					temp[i] = 1;
@@ -69,7 +68,6 @@ namespace StreamCompaction {
 				}
 				temp2[i] = 0;
 			}
-			// TODO: Figure out how to not call timer twice XD
 			scanImplementation(n, temp2, temp);
 			for (int i = 0; i <= n; i++) {
 				if (temp[i] == 1) {
