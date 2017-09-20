@@ -6,6 +6,10 @@
  * @copyright University of Pennsylvania
  */
 
+#include <thread>
+#include <iostream>
+#include <fstream>
+#include <vector>
 #include <cstdio>
 #include <stream_compaction/cpu.h>
 #include <stream_compaction/naive.h>
@@ -13,7 +17,7 @@
 #include <stream_compaction/thrust.h>
 #include "testing_helpers.hpp"
 
-const int SIZE = 1 << 20; // feel free to change the size of array
+const int SIZE = 1 << 22; // feel free to change the size of array
 const int NPOT = SIZE - 5; // Non-Power-Of-Two
 int a[SIZE], b[SIZE], c[SIZE];
 
@@ -169,12 +173,70 @@ int main(int argc, char* argv[]) {
     //printArray(count, c, true);
     printCmpLenResult(count, expectedNPOT, b, c);
 
-	bool generateCSV = true;
-
+	bool generateCSV = false;
 
 	if (generateCSV)
 	{
+		bool useNPOT = true;
+		int steps = 22;		
+		std::vector<std::vector<float>> timeData;
 
+		for (int i = 1; i < steps + 1; ++i)
+		{
+			int size = (1 << i);
+
+			if (useNPOT)
+				size = (size - 3 > 0) ? size - 3 : size;
+
+			int * data = new int[size];
+			int * result = new int[size];
+			genArray(size, data, i * 5);
+			zeroArray(size, data);
+
+			std::vector<float> stepData;
+			stepData.push_back(size);
+
+			// Run each implementation -- we don't care about the results (the previous tests cover that)
+			{
+				zeroArray(size, result);
+				StreamCompaction::CPU::scan(size, result, data);
+				stepData.push_back(StreamCompaction::CPU::timer().getCpuElapsedTimeForPreviousOperation());
+
+				zeroArray(size, result);
+				StreamCompaction::Naive::scan(size, result, data);
+				stepData.push_back(StreamCompaction::Naive::timer().getGpuElapsedTimeForPreviousOperation());
+
+				zeroArray(size, result);
+				StreamCompaction::Efficient::scan(size, result, data);
+				stepData.push_back(StreamCompaction::Efficient::timer().getGpuElapsedTimeForPreviousOperation());
+
+				zeroArray(size, result);
+				StreamCompaction::Thrust::scan(size, result, data);
+				stepData.push_back(StreamCompaction::Thrust::timer().getGpuElapsedTimeForPreviousOperation());
+			}
+
+			timeData.push_back(stepData);
+
+			delete[] data;
+			delete[] result;
+		}
+
+		std::ofstream fstr;
+		fstr.open("data.csv", std::ofstream::out);
+
+		for (int i = 0; i < timeData.size(); ++i)
+		{
+			std::string line = "";
+
+			for (int j = 0; j < timeData[i].size(); ++j)
+				line += std::to_string(timeData[i][j]) + ", "; // Parsers remove this
+
+			line += "\n";
+			std::cout << line << std::endl;
+			fstr.write(line.c_str(), line.length());
+		}
+
+		fstr.close();
 	}
 
 
