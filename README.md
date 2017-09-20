@@ -51,7 +51,7 @@ The goal of this project was to run an algorithm that clears out all zeros from 
 
  - [x] **A work-efficient parallel scan algorithm that uses global memory**
 
- - [x] ** Radix sort using previously developed algorithms**
+ - [x] **Radix sort using previously developed algorithms**
 
  - [ ] **An even more efficient scan algorithm that uses shared memory**
 
