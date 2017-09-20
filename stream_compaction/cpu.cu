@@ -84,6 +84,8 @@ namespace StreamCompaction {
 
             int compactSize = (tempScanArray[n - 1]) ? tempScanResultArray[n - 1] + 1 : tempScanResultArray[n - 1];
             timer().endCpuTimer();
+            delete []tempScanArray;
+            delete []tempScanResultArray;
             return compactSize;
         }
     }

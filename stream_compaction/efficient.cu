@@ -12,38 +12,49 @@ namespace StreamCompaction {
             return timer;
         }
 
-        __global__ void kernWorkEfficientScanUpSweep(int n, int d, int* odata, const int* idata)
+        __global__ void kernWorkEfficientScanUpSweep(int n, int d, int* data)
         {
-            int index = threadIdx.x + blockIdx.x * blockDim.x;
-            int twoPowDPlusOne = (int)powf(2, d + 1);
-            index *= twoPowDPlusOne;
-            if (index >= n)
+            /*int blockId = blockIdx.y * gridDim.x + blockIdx.x;
+            int index = blockId * blockDim.x + threadIdx.x;*/
+            int index = blockIdx.x * blockDim.x + threadIdx.x;
+            int twoPowD = 1 << (d);
+            int twoPowDPlusOne = 1 << (d + 1);
+            
+            if (index >= (n / twoPowDPlusOne))
             {
                 return;
             }
 
-            odata[index + twoPowDPlusOne - 1] += idata[index + ((int)powf(2, d)) - 1];
+            index = (index + 1) * twoPowDPlusOne - 1;
+            int add = data[index - twoPowD];
+            data[index] += add;
         }
 
-        __global__ void kernWorkEfficientScanDownSweep(int n, int d, int* odata, const int* idata)
+        __global__ void kernWorkEfficientScanDownSweep(int n, int d, int* data)
         {
-            int index = threadIdx.x + blockIdx.x * blockDim.x;
-            int twoPowDPlusOne = (int)powf(2, d + 1);
-            index *= twoPowDPlusOne;
-            if (index >= n || n == 1)
+            /*int blockId = blockIdx.y * gridDim.x + blockIdx.x;
+            int index = blockId * blockDim.x + threadIdx.x;*/
+            int index = blockIdx.x * blockDim.x + threadIdx.x;
+            int twoPowD = 1 << (d);
+            int twoPowDPlusOne = 1 << (d + 1);
+            
+            if (index >= (n / twoPowDPlusOne))
             {
                 return;
             }
 
-            int twoPowD = (int)powf(2, d);
-            int t = idata[index + twoPowD - 1];
-            odata[index + twoPowD - 1] = idata[index + twoPowDPlusOne - 1];
-            odata[index + twoPowDPlusOne - 1] += t;
+            index = (index + 1) * twoPowDPlusOne - 1;
+            
+            int t = data[index - twoPowD];
+            data[index - twoPowD] = data[index];
+            data[index] += t;
         }
 
-        __global__ void kernSetFinalValue(int n, int* odata, const int* idata)
+        __global__ void kernSetFinalValue(int n, int* data)
         {
-            int index = threadIdx.x + blockIdx.x * blockDim.x;
+            /*int blockId = blockIdx.y * gridDim.x + blockIdx.x;
+            int index = blockId * blockDim.x + threadIdx.x;*/
+            int index = blockIdx.x * blockDim.x + threadIdx.x;
             if (index >= n)
             {
                 return;
@@ -51,16 +62,16 @@ namespace StreamCompaction {
 
             if (index == n - 1)
             {
-                odata[n - 1] = 0;
+                data[n - 1] = 0;
                 return;
             }
-
-            odata[index] = idata[index];
         }
 
         __global__ void kernSetTempArray(int n, int* odata, const int* idata)
         {
-            int index = threadIdx.x + blockIdx.x * blockDim.x;
+            /*int blockId = blockIdx.y * gridDim.x + blockIdx.x;
+            int index = blockId * blockDim.x + threadIdx.x;*/
+            int index = blockIdx.x * blockDim.x + threadIdx.x;
             if (index >= n)
             {
                 return;
@@ -71,7 +82,9 @@ namespace StreamCompaction {
 
         __global__ void kernScatter(int n, int* odata, const int* tempArray, const int* scannedTempArray, const int* idata)
         {
-            int index = threadIdx.x + blockIdx.x * blockDim.x;
+            /*int blockId = blockIdx.y * gridDim.x + blockIdx.x;
+            int index = blockId * blockDim.x + threadIdx.x;*/
+            int index = blockIdx.x * blockDim.x + threadIdx.x;
             if (index >= n)
             {
                 return;
@@ -91,7 +104,6 @@ namespace StreamCompaction {
          * Performs prefix-sum (aka scan) on idata, storing the result into odata.
          */
         void scan(int n, int *odata, const int *idata) {
-
             int nLog2 = ilog2ceil(n);
 
             // Pad the array with zeroes in the event that it isn't a power of two
@@ -113,63 +125,57 @@ namespace StreamCompaction {
             int numArrayBytes = sizeof(int) * newN;
 
             // Global memory arrays
-            int* dev_idata;
-            int* dev_odata;
+            int* dev_data;
 
             // Kernel configuration
-            float blockSize = 64.f;
+            float blockSize = 512.f;
             dim3 threadsPerBlock(blockSize);
-            dim3 fullBlocksPerGrid((((float) newN) + blockSize - 1.f) / blockSize);
+            float numBlocks = (((float)newN) + blockSize - 1.f) / blockSize;
+            dim3 fullBlocksPerGrid((unsigned int) numBlocks);
 
-            // CUDA Mallocs
-            cudaMalloc((void**)&dev_odata, numArrayBytes);
-            checkCUDAError("cudaMalloc dev_odata failed!", __LINE__);
-
-            cudaMalloc((void**)&dev_idata, numArrayBytes);
-            checkCUDAError("cudaMalloc dev_idata failed!", __LINE__);
+            cudaMalloc((void**)&dev_data, numArrayBytes);
+            checkCUDAError("cudaMalloc dev_idata failed!");
 
             // Copy the input data array to the device
-            cudaMemcpy(dev_idata, paddedArray, numArrayBytes, cudaMemcpyHostToDevice);
-            checkCUDAError("memcpy failed!", __LINE__);
-
-            // Copy the input data array to the output array (needs the initial data to be correct)
-            cudaMemcpy(dev_odata, dev_idata, numArrayBytes, cudaMemcpyDeviceToDevice);
-            checkCUDAError("memcpy failed!", __LINE__);
+            cudaMemcpy(dev_data, paddedArray, numArrayBytes, cudaMemcpyHostToDevice);
+            checkCUDAError("memcpy failed!");
 
             timer().startGpuTimer();
 
             // Perform the work efficient scan
             for (int d = 0; d <= nLog2 - 1; ++d)
             {
-                kernWorkEfficientScanUpSweep << < fullBlocksPerGrid, threadsPerBlock >> > (newN, d, dev_odata, dev_idata);
-                cudaMemcpy(dev_idata, dev_odata, numArrayBytes, cudaMemcpyDeviceToDevice);
-                checkCUDAError("memcpy failed!1", __LINE__);
+                if (n == 1) break;
+                float numBlocksDynamic = (((float) newN) / pow(2, d + 1) + blockSize - 1.f) / blockSize;
+                dim3 fullBlocksPerGrid_efficient((unsigned int) numBlocksDynamic);
+                kernWorkEfficientScanUpSweep << < fullBlocksPerGrid, threadsPerBlock >> > (newN, d, dev_data);
             }
 
             // Set the final value of the array to 0 as the first step of the down sweep
-            kernSetFinalValue << < fullBlocksPerGrid, threadsPerBlock >> > (newN, dev_odata, dev_idata);
-            cudaMemcpy(dev_idata, dev_odata, numArrayBytes, cudaMemcpyDeviceToDevice);
-            checkCUDAError("memcpy failed!2", __LINE__);
+            // Replace this is a device to host memcpy - ask Josh
+            kernSetFinalValue << < fullBlocksPerGrid, threadsPerBlock >> > (newN, dev_data);
 
             for (int d = nLog2 - 1; d >= 0; --d)
             {
-                kernWorkEfficientScanDownSweep << < fullBlocksPerGrid, threadsPerBlock >> > (newN, d, dev_idata, dev_odata);
-                cudaMemcpy(dev_odata, dev_idata, numArrayBytes, cudaMemcpyDeviceToDevice);
-                checkCUDAError("memcpy failed!3", __LINE__);
+                if (n == 1) break;
+                float numBlocksDynamic = (((float) newN) / pow(2, d + 1) + blockSize - 1.f) / blockSize;
+                dim3 fullBlocksPerGrid_efficient((unsigned int) numBlocksDynamic);
+                kernWorkEfficientScanDownSweep << < fullBlocksPerGrid, threadsPerBlock >> > (newN, d, dev_data);
             }
 
             timer().endGpuTimer();
 
-            cudaMemcpy(paddedArray, dev_odata, numArrayBytes, cudaMemcpyDeviceToHost);
-            checkCUDAError("memcpy failed4!", __LINE__);
+            cudaMemcpy(paddedArray, dev_data, numArrayBytes, cudaMemcpyDeviceToHost);
+            checkCUDAError("memcpy failed4!");
 
+            // De-pad the zeroes from the array
             for (int i = 0; i < n; ++i)
             {
                 odata[i] = paddedArray[i + newN - n];
             }
 
-            cudaFree(dev_idata);
-            cudaFree(dev_odata);
+            cudaFree(dev_data);
+            delete(paddedArray);
         }
 
         /**
@@ -237,37 +243,24 @@ namespace StreamCompaction {
             cudaMemcpy(dev_sumTempArray, dev_tempArray, numArrayBytes, cudaMemcpyDeviceToDevice);
             checkCUDAError("memcpy failed!", __LINE__);
 
-            // Copy the input data array to the output array (needs the initial data to be correct)
-            cudaMemcpy(dev_idata, dev_tempArray, numArrayBytes, cudaMemcpyDeviceToDevice);
-            checkCUDAError("memcpy failed!", __LINE__);
-
             timer().startGpuTimer();
 
             // Perform the work efficient scan - up sweep
             for (int d = 0; d <= nLog2 - 1; ++d)
             {
                 dim3 fullBlocksPerGrid_efficient((((float) newN) / pow(2, d + 1) + blockSize - 1.f) / blockSize);
-                kernWorkEfficientScanUpSweep << < fullBlocksPerGrid, threadsPerBlock >> > (newN, d, dev_sumTempArray, dev_idata);
-                cudaMemcpy(dev_idata, dev_sumTempArray, numArrayBytes, cudaMemcpyDeviceToDevice);
-                checkCUDAError("memcpy failed!1", __LINE__);
+                kernWorkEfficientScanUpSweep << < fullBlocksPerGrid, threadsPerBlock >> > (newN, d, dev_sumTempArray);
             }
 
             // Set the final value of the array to 0 as the first step of the down sweep
-            kernSetFinalValue << < fullBlocksPerGrid, threadsPerBlock >> > (newN, dev_sumTempArray, dev_idata);
-            cudaMemcpy(dev_idata, dev_sumTempArray, numArrayBytes, cudaMemcpyDeviceToDevice);
-            checkCUDAError("memcpy failed!2", __LINE__);
+            kernSetFinalValue << < fullBlocksPerGrid, threadsPerBlock >> > (newN, dev_sumTempArray);
 
             // Perform the work efficient scan - up sweep
             for (int d = nLog2 - 1; d >= 0; --d)
             {
                 dim3 fullBlocksPerGrid_efficient((((float) newN) / pow(2, d + 1) + blockSize - 1.f) / blockSize);
-                kernWorkEfficientScanDownSweep << < fullBlocksPerGrid, threadsPerBlock >> > (newN, d, dev_sumTempArray, dev_idata);
-                cudaMemcpy(dev_idata, dev_sumTempArray, numArrayBytes, cudaMemcpyDeviceToDevice);
-                checkCUDAError("memcpy failed!3", __LINE__);
+                kernWorkEfficientScanDownSweep << < fullBlocksPerGrid, threadsPerBlock >> > (newN, d, dev_sumTempArray);
             }
-
-            cudaMemcpy(dev_idata, paddedArray, numArrayBytes, cudaMemcpyHostToDevice);
-            checkCUDAError("memcpy failed!", __LINE__);
 
             // Scatter
             kernScatter << < fullBlocksPerGrid, threadsPerBlock >> > (newN, dev_odata, dev_tempArray, dev_sumTempArray, dev_idata);

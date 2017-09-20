@@ -51,6 +51,12 @@ void genArray(int n, int *a, int maxval) {
     }
 }
 
+void genOnesArray(int n, int *a) {
+    for (int i = 0; i < n; i++) {
+        a[i] = 1;
+    }
+}
+
 void printArray(int n, int *a, bool abridged = false) {
     printf("    [ ");
     for (int i = 0; i < n; i++) {
