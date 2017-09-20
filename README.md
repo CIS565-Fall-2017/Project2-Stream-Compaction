@@ -69,7 +69,7 @@ Below are charts showing tests across all 4 algorithms, both testing with power-
 
 First things first - why is the GPU implementation so much slower than the Naive Parallel and CPU versions? Isn't the GPU supposed to be faster? 
 
-Take a look at the example diagram of a down sweep process below. 
+Take a look at the example diagram of the up sweep process as a part of the work-efficient algorithm below. 
 
 ![](images/upsweep.PNG)
 
