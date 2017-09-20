@@ -26,14 +26,81 @@ I implement **Scan**, (and using it, Stream Compaction) with a straightforward C
 - Naive GPU Scan
 - Work Efficient GPU Scan
 - GPU Compaction
+#### Tests Passed: 
+```
 
-## Implementation Details
+****************
+** SCAN TESTS **
+****************
+    [  14  48  46  18  30  23  38  34  37  24  49  31  22 ...  10   0 ]
+==== cpu scan, power-of-two ====
+   elapsed time: 0.002704ms    (std::chrono Measured)
+    [   0  14  62 108 126 156 179 217 251 288 312 361 392 ... 24618 24628 ]
+==== cpu scan, non-power-of-two ====
+   elapsed time: 0.002403ms    (std::chrono Measured)
+    [   0  14  62 108 126 156 179 217 251 288 312 361 392 ... 24581 24594 ]
+    passed
+==== naive scan, power-of-two ====
+   elapsed time: 0.195104ms    (CUDA Measured)
+    passed
+==== naive scan, non-power-of-two ====
+   elapsed time: 0.221728ms    (CUDA Measured)
+    passed
+==== work-efficient scan, power-of-two ====
+   elapsed time: 0.39984ms    (CUDA Measured)
+    passed
+==== work-efficient scan, non-power-of-two ====
+   elapsed time: 0.375648ms    (CUDA Measured)
+    passed
+==== thrust scan, power-of-two ====
+   elapsed time: 5.17347ms    (CUDA Measured)
+    passed
+==== thrust scan, non-power-of-two ====
+   elapsed time: 1.81082ms    (CUDA Measured)
+    passed
 
-### Scan
+*****************************
+** STREAM COMPACTION TESTS **
+*****************************
+    [   1   2   2   2   3   3   0   3   2   2   3   3   3 ...   0   0 ]
+==== cpu compact without scan, power-of-two ====
+   elapsed time: 0.005408ms    (std::chrono Measured)
+    [   1   2   2   2   3   3   3   2   2   3   3   3   2 ...   3   2 ]
+    passed
+==== cpu compact without scan, non-power-of-two ====
+   elapsed time: 0.005108ms    (std::chrono Measured)
+    [   1   2   2   2   3   3   3   2   2   3   3   3   2 ...   1   3 ]
+    passed
+==== cpu compact with scan ====
+   elapsed time: 0.002403ms    (std::chrono Measured)
+    [   1   2   2   2   3   3   3   2   2   3   3   3   2 ...   3   2 ]
+    passed
+==== work-efficient compact, power-of-two ====
+   elapsed time: 0.415616ms    (CUDA Measured)
+    passed
+==== work-efficient compact, non-power-of-two ====
+   elapsed time: 0.442624ms    (CUDA Measured)
+    passed
+Press any key to continue . . .
+```
 
-### CPU, Naive GPU, Work-Efficient GPU
+## Additional Implementation Details
 
-## Preliminary Analysis
+The Work-Efficient Scan algorithm reduces the number of necessary operations to a complexity of _O(n)_. Observe that, on differing iterations of the Upsweep and Downsweep phase, the number of elements to process in parallel changes. One useful way to leverage this is to map thread indices to the indices they operate on in such a way as to group working threads together in warps. The code snippet I've included below is from my implementation of the Upsweep, which is intended to make sure that all threads that need to do work are grouped at the lowest thread indices, which minimizes the number of warps that do not have all threads working.
+
+```
+//n is the number of threads necessary to compute the Upsweep
+int index = threadIdx.x + blockDim.x * blockIdx.x;
+if (index >= n) {
+	return;
+}
+int incrementLength = (int)powf(2.0, d);
+int firstIndexInIteration = incrementLength - 1;
+int firstSumIndex = firstIndexInIteration + index * incrementLength * 2;			 
+data[firstSumIndex + incrementLength] = data[firstSumIndex] + data[firstSumIndex + incrementLength];
+```
+
+## Analysis
 
 ### Scan Analysis
 | Array Size vs Runtime in ms	| CPU	| Naive	| Work Efficient |	Thrust	| Thrust 2nd Run |
