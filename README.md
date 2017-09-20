@@ -16,7 +16,9 @@ These are the test results of all the method I implemented.
 ![](./img/result2.png);
 
 ## Performance Analysis
+
 * *Block Size*
+
 I compare the time cost of scan function under different block size value. The result is shown as the graph below.
 
 ![](./img/blocksizeComparison.png);
@@ -40,6 +42,7 @@ instead of:
 	}
 
 * *Efficiency of different scan method*
+
 I compare the efficiency of different scan method and make a plot below.
 ![](./img/ScanComparison.png);
 
@@ -48,6 +51,7 @@ As the plot shows, when the size of array is not very huge,  `cpu scan` will be 
 But there is an another thing I don't quite understand. That is the `naive scan` takes the most time when the size of array is very huge. I think `naive scan` should be more efficient than cpu scan, but I don't know what's going on here.
 
 * *Thrust scan*
+
 As the plot above shows, `thrust::scan` is more efficient than the scan methods we implemented on GPU. I think there may be 2 reasons. One is that `thrust::scan` function may use the share memory to store the data and access the data from share memory instead of from global memory. In this way, it will produce less latency because it visits the global memory less times. The other is that `thrust::scan` may make some optimizations on the binary search algorithm. The best proof of this is that the time cost of `thrust::scan` will be much less when the size of the array is not the power of 2, which means when the size value is the power of 2, it is probably the worst case for its algorithm.
 
 * *Test Result*
@@ -106,8 +110,10 @@ As the plot above shows, `thrust::scan` is more efficient than the scan methods 
    elapsed time: 0.219104ms    (CUDA Measured)
     passed
 ```
-## Extra Credit
+## Extra Credit     
+
 * *Efficient scan optimization*
+
 Compared to the basic algorithm, I optimize the `kernUpsweep` and `kernDownsweep` function by reducing the branches in it. 
 Instead of judging whether the current index is the power of 2, I computer the index we need to deal with directly.
 ```
