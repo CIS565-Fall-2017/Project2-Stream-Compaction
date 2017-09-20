@@ -29,6 +29,7 @@ It is interesting to analyze the results both in debug and release mode, as some
 The relative performances seem to be uniformly correlated, exept for Thrust. I suspect this happens because the library does some precomputation and thus becomes faster after some iterations, as the next graph exemplifies. It is also probably faster than my work efficient implementation, as I didn't do any shared memory optimizations. A clear drop in execution time can be seen after the first Thrust run.
 
 ![](images/iterations.png)
+An example of running the algorithms with an array of the same size. Note how Thrust drops and performs better with time.
 
 It is also useful to analyze the relationship between using power of two arrays or non power of two. Note that the Thrust pattern still emerges. Although the ratio is close to 1, the non power of two case definitely uses more memory than necessary and is going to impact the overall application.
 
