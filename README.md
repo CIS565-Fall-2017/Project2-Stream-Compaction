@@ -58,10 +58,35 @@ On the other hand, for larger arrays (size >= 2^17), the Thrust and work-efficie
 
 For larger sizes, the parallel nature of the GPU algorithms allows them to scale better than the CPU scan, making them outperform it in spite of the overhead mentioned above. The lack of work-efficiency in the naive scan exaggerates the effect of this overhead, such that it still cannot truly benefit from the parallel algorithm.
 
+#### Thrust implementation analysis
+
+Below is an image taken from the Nsight timeline after running only the Thrust scan, and below it is a zoomed-in view:
+
+![](img/thrust-full.png)
+
+![](img/thrust-zoom.png)
+
+This was run with an array size of 2^20, which explains the 4 MB copy from the host and, later, back to the host.
+
+It's not very clear how memory is being accessed. From looking at the GPU vs. CPU graphs above, we can see that the Thrust has a noticeable drop in performance in the are around the array sizes of 2^16 and 2^18. Perhaps this is due to an algorithm involving shared memory that can no longer function optimally for such large arrays, requiring, for example, more blocks to be run and their results to be combined later.
+
+#### Possible bottlenecks
+
+There is good evidence here that the main bottleneck for the GPU scans is memory access. We know global memory access is very slow, but this cost can be amortized by having additional warps in flight. As the array size grows, we can hide more and more of the memory access latency, until the GPU implementations (except for Naive) begin outperforming the CPU.
+
+#### Shared memory
+
+Below is a graph comparing the work-efficient GPU scan with shared memory versus the version with global memory and Thrust's scan.
+
+![](img/shared.png)
+
+We can clearly see that using the much faster on-chip shared memory greatly improves performance. In fact, it is likely that due to device-specific optimizations, such as using the number of banks to avoid bank conflicts, our implementation of scan is even faster than Thrust's.
+
+Unfortunately, this specific implementation is limited in that it only correctly runs if executed in a single block. It is definitely possible to expand this to use multiple blocks ("scan of scans"), though.
 
 ### Output of test program
 
-The output below was generated with an array size of 2^20. It includes tests for the work-efficient with shared memory GPU scan and the GPU radix sort.
+The output below was generated with an array size of 2^20. It includes tests for the **GPU radix sort**, but not the work-efficient with shared memory GPU scan, due to limited memory.
 
 ```
 ****************
@@ -139,4 +164,89 @@ The output below was generated with an array size of 2^20. It includes tests for
     passed
 Press any key to continue . . .
 
+```
+
+The output below was generated with a size of 2^10, and does include the **shared memory scan**.
+
+```
+****************
+** SCAN TESTS **
+****************
+    [  28  25  45  12   4  47  26  36  15  40  46  40  46 ...  22   0 ]
+==== cpu scan, power-of-two ====
+   elapsed time: 0.001824ms    (std::chrono Measured)
+    [   0  28  53  98 110 114 161 187 223 238 278 324 364 ... 25226 25248 ]
+==== cpu scan, non-power-of-two ====
+   elapsed time: 0.001824ms    (std::chrono Measured)
+    [   0  28  53  98 110 114 161 187 223 238 278 324 364 ... 25178 25181 ]
+    passed
+==== naive scan, power-of-two ====
+   elapsed time: 0.026624ms    (CUDA Measured)
+    passed
+==== naive scan, non-power-of-two ====
+   elapsed time: 0.03584ms    (CUDA Measured)
+    passed
+==== EFFICIENT SHARED scan, power-of-two ====
+   elapsed time: 0.009216ms    (CUDA Measured)
+    passed
+==== EFFICIENT SHARED scan, NON-power-of-two ====
+   elapsed time: 0.009728ms    (CUDA Measured)
+    [   0  28  53  98 110 114 161 187 223 238 278 324 364 ... 25178 25181 ]
+    passed
+==== work-efficient scan, power-of-two ====
+   elapsed time: 0.047104ms    (CUDA Measured)
+    passed
+==== work-efficient scan, non-power-of-two ====
+   elapsed time: 0.053248ms    (CUDA Measured)
+    passed
+==== thrust scan, power-of-two ====
+   elapsed time: 0.012288ms    (CUDA Measured)
+    [   0  28  53  98 110 114 161 187 223 238 278 324 364 ... 25226 25248 ]
+    passed
+==== thrust scan, non-power-of-two ====
+   elapsed time: 0.012288ms    (CUDA Measured)
+    passed
+
+*****************************
+** STREAM COMPACTION TESTS **
+*****************************
+    [   0   3   1   2   0   1   0   2   3   0   0   0   0 ...   0   0 ]
+==== cpu compact without scan, power-of-two ====
+   elapsed time: 0.004376ms    (std::chrono Measured)
+    [   3   1   2   1   2   3   3   3   1   3   2   3   3 ...   2   1 ]
+    passed
+==== cpu compact without scan, non-power-of-two ====
+   elapsed time: 0.010941ms    (std::chrono Measured)
+    [   3   1   2   1   2   3   3   3   1   3   2   3   3 ...   3   2 ]
+    passed
+==== cpu compact with scan ====
+   elapsed time: 0.02735ms    (std::chrono Measured)
+    [   3   1   2   1   2   3   3   3   1   3   2   3   3 ...   2   1 ]
+    passed
+==== work-efficient compact, power-of-two ====
+   elapsed time: 0.153984ms    (CUDA Measured)
+    passed
+==== work-efficient compact, non-power-of-two ====
+   elapsed time: 0.365568ms    (CUDA Measured)
+    passed
+
+****************
+** SORT TESTS **
+****************
+    [ 220 195 217 230 192  97  96 114 255  60  72 140 116 ... 216   0 ]
+==== cpu std::sort, power-of-two ====
+   elapsed time: 0.02735ms    (std::chrono Measured)
+    [   0   0   0   0   0   0   0   0   1   1   2   2   3 ... 255 255 ]
+==== gpu radix sort, power-of-two ====
+   elapsed time: 1.62816ms    (CUDA Measured)
+    [   0   0   0   0   0   0   0   0   1   1   2   2   3 ... 255 255 ]
+    passed
+==== cpu std::sort, non-power-of-two ====
+   elapsed time: 0.02735ms    (std::chrono Measured)
+    [   0   0   0   0   0   0   0   1   2   2   3   3   3 ... 255 255 ]
+==== gpu radix sort, non-power-of-two ====
+   elapsed time: 2.15584ms    (CUDA Measured)
+    [   0   0   0   0   0   0   0   1   2   2   3   3   3 ... 255 255 ]
+    passed
+Press any key to continue . . .
 ```
