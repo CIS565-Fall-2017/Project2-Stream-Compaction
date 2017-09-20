@@ -10,6 +10,8 @@
 #include <chrono>
 #include <stdexcept>
 
+#define blockSize 128
+
 #define FILENAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #define checkCUDAError(msg) checkCUDAErrorFn(msg, FILENAME, __LINE__)
 
@@ -27,7 +29,7 @@ inline int ilog2(int x) {
 }
 
 inline int ilog2ceil(int x) {
-    return ilog2(x - 1) + 1;
+	return ilog2(x - 1) + 1;
 }
 
 namespace StreamCompaction {
