@@ -11,7 +11,7 @@ namespace StreamCompaction {
 			static PerformanceTimer timer;
 			return timer;
 		}
-		int threadPerBlock = 64;
+		int threadPerBlock = 256;
 		int* dev_Data;
 		int *dev_Map;
 		int *dev_Scatter;
@@ -23,7 +23,6 @@ namespace StreamCompaction {
 			int idx = (blockIdx.x * blockDim.x) + threadIdx.x;
 			if (idx >= nodeNum)	return;
 			idata[(idx + 1)*(1 << (d + 1)) - 1] += idata[idx*(1 << (d + 1)) + (1 << d) - 1];
-			//idata[(idx + 1) * (1 << (d + 1)) - 1] += idata[(idx + 1) * (1 << (d + 1)) - 1 - (1 << d)];
 		}
 
 		__global__ void KernDownSweep(int d, int *idata, int nodeNum)
@@ -61,13 +60,11 @@ namespace StreamCompaction {
 				int blocknum = nodeNum / threadPerBlock + 1;
 				KernDownSweep << <blocknum, threadPerBlock >> >(d, dev_Data, nodeNum);
 			}
+			timer().endGpuTimer();
 			cudaMemcpy(odata, dev_Data, sizeof(int) * n, cudaMemcpyDeviceToHost);
 			checkCUDAError("cudaMemcpy to host failed!");
-			//	for (int j = 0; j < n; j++)
-			//	printf("%d ", odata[j]);
-			//printf("\n");
 			cudaFree(dev_Data);
-			timer().endGpuTimer();
+
 		}
 
 		/**
@@ -91,9 +88,10 @@ namespace StreamCompaction {
 			cudaMemcpy(dev_Data, idata, oLength * sizeof(int), cudaMemcpyHostToDevice);
 			checkCUDAError("cudaMemcpy to device failed!");
 
-			timer().startGpuTimer();
+
 			// TODO
 			int blocknum = oLength / threadPerBlock + 1;
+			timer().startGpuTimer();
 			Common::kernMapToBoolean << <blocknum, threadPerBlock >> >(oLength, dev_Map, dev_Data);
 
 			// Here I reimplement the scan part, because in the main function, scan and compaction are timed seperately,
@@ -119,11 +117,10 @@ namespace StreamCompaction {
 
 			blocknum = n / threadPerBlock + 1;
 			Common::kernScatter << < blocknum, threadPerBlock >> > (n, dev_oData, dev_Data, dev_Map, dev_Scatter);
-			cudaMemcpy(odata, dev_oData, sizeof(int) * n, cudaMemcpyDeviceToHost);
-			checkCUDAError("cudaMemcpy to host failed!");
-
 			timer().endGpuTimer();
 
+			cudaMemcpy(odata, dev_oData, sizeof(int) * n, cudaMemcpyDeviceToHost);
+			checkCUDAError("cudaMemcpy to host failed!");
 			int count, end;
 			cudaMemcpy(&count, dev_Scatter + n - 1, sizeof(int), cudaMemcpyDeviceToHost);
 			cudaMemcpy(&end, dev_Map + n - 1, sizeof(int), cudaMemcpyDeviceToHost);

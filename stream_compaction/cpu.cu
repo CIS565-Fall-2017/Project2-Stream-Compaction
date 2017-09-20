@@ -25,7 +25,7 @@ namespace StreamCompaction {
 			int oLength = 1 << layer;
 
 			// Uncomment the timer here if you want to test the efficiency of scan function
-			timer().startCpuTimer();
+			//timer().startCpuTimer();
 			for (int d = 0; d < layer; d++) {
 				for (int k = 0; k < oLength; k += (1 << (d + 1))) {
 
@@ -41,7 +41,7 @@ namespace StreamCompaction {
 					odata[nodeIdx + (1 << d)] += temp;
 				}
 			}
-			timer().endCpuTimer();
+			//timer().endCpuTimer();
 		}
 
 		/**
@@ -72,7 +72,7 @@ namespace StreamCompaction {
 			if (n <= 0) return -1;
 			int num = 0;
 			// TODO
-			//timer().startCpuTimer();
+			timer().startCpuTimer();
 			for (int i = 0; i < n; i++) {
 				odata[i] = idata[i] ? 1 : 0;
 			}
@@ -82,7 +82,7 @@ namespace StreamCompaction {
 				if (idata[i])
 					odata[odata[i]] = idata[i];
 			}
-			//timer().endCpuTimer();
+			timer().endCpuTimer();
 			return num;
 		}
 	}
