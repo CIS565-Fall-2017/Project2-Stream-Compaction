@@ -17,13 +17,13 @@ To do the work efficient scan I implemented the extra credit.  All the threads a
 
 For all number of elements all the tests passed.
 
-![](images/RunTimes.png)
+![](img/RunTimes.png)
 THis figure plots the log10 of the run time per element in the array.  This measure was relatively constant as N increased. Here we can see that the work efficient scan at first is worse than the CPU scan but as the number of elements increases, it first beats the naive scan and then matches the CPU scan.  Thrust on the other hand is the fastest scan for large data (faster by a factor of about 6).
 The non power of two scans were slightly faster but comparable in speed to the power of two scans.
 
 Stream Compaction is one application of scan and it allows one to remove elements from the stream.  Here around 10^5 elements, the work efficient compaction actually beat the other compactions.  A thrust scan would beat the work efficient compaction, since a majority of the time to compact is spent making the exclusive scan.
 
-![](images/StreamCompactionTimes.png)
+![](img/StreamCompactionTimes.png)
 
 
 Here I implemented the efficient scan using contiguous threads.  This worked perfectly up to one block but beyond one block the code failed.   The issue was that threads beyond one block do not synchronize.
