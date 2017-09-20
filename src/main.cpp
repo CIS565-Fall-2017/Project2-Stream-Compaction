@@ -11,14 +11,19 @@
 #include <stream_compaction/naive.h>
 #include <stream_compaction/efficient.h>
 #include <stream_compaction/thrust.h>
+#include <stream_compaction/radix.h>
 #include "testing_helpers.hpp"
-
-const int SIZE = 1 << 8; // feel free to change the size of array
+const int SIZE = 1 << 4; // feel free to change the size of array
 const int NPOT = SIZE - 3; // Non-Power-Of-Two
-int a[SIZE], b[SIZE], c[SIZE];
+//int a[SIZE], b[SIZE], c[SIZE], d[SIZE];
 
 int main(int argc, char* argv[]) {
     // Scan tests
+
+	 int* a = reinterpret_cast<int*>(malloc(SIZE * sizeof(int)));
+	 int* b = reinterpret_cast<int*>(malloc(SIZE * sizeof(int)));
+	 int* c = reinterpret_cast<int*>(malloc(SIZE * sizeof(int)));
+	 int* d = reinterpret_cast<int*>(malloc(SIZE * sizeof(int)));
 
     printf("\n");
     printf("****************\n");
@@ -27,6 +32,7 @@ int main(int argc, char* argv[]) {
 
     genArray(SIZE - 1, a, 50);  // Leave a 0 at the end to test that edge case
     a[SIZE - 1] = 0;
+
     printArray(SIZE, a, true);
 
     // initialize b using StreamCompaction::CPU::scan you implement
@@ -49,42 +55,42 @@ int main(int argc, char* argv[]) {
     printDesc("naive scan, power-of-two");
     StreamCompaction::Naive::scan(SIZE, c, a);
     printElapsedTime(StreamCompaction::Naive::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
-    //printArray(SIZE, c, true);
+    printArray(SIZE, c, true);
     printCmpResult(SIZE, b, c);
 
     zeroArray(SIZE, c);
     printDesc("naive scan, non-power-of-two");
     StreamCompaction::Naive::scan(NPOT, c, a);
     printElapsedTime(StreamCompaction::Naive::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
-    //printArray(SIZE, c, true);
+    printArray(NPOT, c, true);
     printCmpResult(NPOT, b, c);
 
     zeroArray(SIZE, c);
     printDesc("work-efficient scan, power-of-two");
     StreamCompaction::Efficient::scan(SIZE, c, a);
     printElapsedTime(StreamCompaction::Efficient::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
-    //printArray(SIZE, c, true);
+    printArray(SIZE, c, true);
     printCmpResult(SIZE, b, c);
 
     zeroArray(SIZE, c);
     printDesc("work-efficient scan, non-power-of-two");
     StreamCompaction::Efficient::scan(NPOT, c, a);
     printElapsedTime(StreamCompaction::Efficient::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
-    //printArray(NPOT, c, true);
+    printArray(NPOT, c, true);
     printCmpResult(NPOT, b, c);
 
     zeroArray(SIZE, c);
     printDesc("thrust scan, power-of-two");
     StreamCompaction::Thrust::scan(SIZE, c, a);
     printElapsedTime(StreamCompaction::Thrust::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
-    //printArray(SIZE, c, true);
+    printArray(SIZE, c, true);
     printCmpResult(SIZE, b, c);
 
     zeroArray(SIZE, c);
     printDesc("thrust scan, non-power-of-two");
     StreamCompaction::Thrust::scan(NPOT, c, a);
     printElapsedTime(StreamCompaction::Thrust::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
-    //printArray(NPOT, c, true);
+    printArray(NPOT, c, true);
     printCmpResult(NPOT, b, c);
 
     printf("\n");
@@ -98,46 +104,83 @@ int main(int argc, char* argv[]) {
     a[SIZE - 1] = 0;
     printArray(SIZE, a, true);
 
-    int count, expectedCount, expectedNPOT;
+    int countSIZE, countNPOT, expectedSIZE, expectedNPOT;
 
     // initialize b using StreamCompaction::CPU::compactWithoutScan you implement
     // We use b for further comparison. Make sure your StreamCompaction::CPU::compactWithoutScan is correct.
     zeroArray(SIZE, b);
     printDesc("cpu compact without scan, power-of-two");
-    count = StreamCompaction::CPU::compactWithoutScan(SIZE, b, a);
+    countSIZE = StreamCompaction::CPU::compactWithoutScan(SIZE, b, a);
     printElapsedTime(StreamCompaction::CPU::timer().getCpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
-    expectedCount = count;
-    printArray(count, b, true);
-    printCmpLenResult(count, expectedCount, b, b);
+	expectedSIZE = countSIZE;
+    printArray(expectedSIZE, b, true);
+    printCmpLenResult(countSIZE, expectedSIZE, b, b);
 
     zeroArray(SIZE, c);
     printDesc("cpu compact without scan, non-power-of-two");
-    count = StreamCompaction::CPU::compactWithoutScan(NPOT, c, a);
+	countNPOT = StreamCompaction::CPU::compactWithoutScan(NPOT, c, a);
     printElapsedTime(StreamCompaction::CPU::timer().getCpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
-    expectedNPOT = count;
-    printArray(count, c, true);
-    printCmpLenResult(count, expectedNPOT, b, c);
+    expectedNPOT = countNPOT;
+    printArray(countNPOT, c, true);
+    printCmpLenResult(countNPOT, expectedNPOT, b, c);
 
     zeroArray(SIZE, c);
     printDesc("cpu compact with scan");
-    count = StreamCompaction::CPU::compactWithScan(SIZE, c, a);
+	countSIZE = StreamCompaction::CPU::compactWithScan(SIZE, c, a);
     printElapsedTime(StreamCompaction::CPU::timer().getCpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
-    printArray(count, c, true);
-    printCmpLenResult(count, expectedCount, b, c);
+    printArray(countSIZE, c, true);
+    printCmpLenResult(countSIZE, expectedSIZE, b, c);
 
     zeroArray(SIZE, c);
     printDesc("work-efficient compact, power-of-two");
-    count = StreamCompaction::Efficient::compact(SIZE, c, a);
+	countSIZE = StreamCompaction::Efficient::compact(SIZE, c, a);
     printElapsedTime(StreamCompaction::Efficient::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
-    //printArray(count, c, true);
-    printCmpLenResult(count, expectedCount, b, c);
+    printArray(expectedSIZE, c, true);
+    printCmpLenResult(countSIZE, expectedSIZE, b, c);
 
     zeroArray(SIZE, c);
     printDesc("work-efficient compact, non-power-of-two");
-    count = StreamCompaction::Efficient::compact(NPOT, c, a);
+	countNPOT = StreamCompaction::Efficient::compact(NPOT, c, a);
     printElapsedTime(StreamCompaction::Efficient::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
-    //printArray(count, c, true);
-    printCmpLenResult(count, expectedNPOT, b, c);
+    printArray(expectedNPOT, c, true);
+    printCmpLenResult(countNPOT, expectedNPOT, b, c);
+
+    printf("\n");
+    printf("*****************************\n");
+    printf("** RADIX SORT TESTS **\n");
+    printf("*****************************\n");
+
+    // Radix Tests
+
+	int k = 4;
+	genArray(SIZE - 1, a, 1 << k); 
+    printArray(SIZE, a, true);
+
+    zeroArray(SIZE, b);
+    printDesc("cpu sort, power-of-two");
+    StreamCompaction::CPU::sort(SIZE, b, a);
+    printElapsedTime(StreamCompaction::CPU::timer().getCpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
+    printArray(SIZE, b, true);
+
+    zeroArray(SIZE, c);
+    printDesc("cpu sort, non-power-of-two");
+    StreamCompaction::CPU::sort(NPOT, c, a);
+    printElapsedTime(StreamCompaction::CPU::timer().getCpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
+    printArray(NPOT, c, true);
+
+    zeroArray(SIZE, d);
+    printDesc("radix sort, power-of-two");
+    StreamCompaction::Radix::sort(SIZE, k + 1, d, a);
+    printElapsedTime(StreamCompaction::Radix::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
+    printArray(SIZE, d, true);
+	printCmpResult(SIZE, b, d);
+
+    zeroArray(SIZE, d);
+    printDesc("radix sort, non-power-of-two");
+    StreamCompaction::Radix::sort(NPOT, k + 1, d, a);
+    printElapsedTime(StreamCompaction::Radix::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
+    printArray(NPOT, d, true);
+    printCmpResult(NPOT, c, d);
 
     system("pause"); // stop Win32 console from closing on exit
 }
