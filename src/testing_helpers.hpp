@@ -44,11 +44,19 @@ void zeroArray(int n, int *a) {
 }
 
 void genArray(int n, int *a, int maxval) {
-    srand(time(nullptr));
+	srand(time(nullptr));
 
     for (int i = 0; i < n; i++) {
         a[i] = rand() % maxval;
     }
+}
+
+void genArrayNonZero(int n, int *a, int maxval) {
+	srand(time(nullptr));
+
+	for (int i = 0; i < n; i++) {
+		a[i] = (rand() % maxval) + 1;
+	}
 }
 
 void printArray(int n, int *a, bool abridged = false) {
