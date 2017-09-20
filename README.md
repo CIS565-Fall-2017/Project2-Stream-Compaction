@@ -11,7 +11,7 @@ Tested on: Windows 10, Intel Core i7-7700HQ CPU @ 2.80 GHz, 8GB RAM, NVidia GeFo
 
 
 
-- [Features](#features)
+- [To-do's](#to-do's)
 
 
 
@@ -39,7 +39,7 @@ The goal of this project was to run an algorithm that clears out all zeros from 
 
 
 
-### Things Done
+### To-do's
 
 
  - [x] **A CPU Implementation of the algorithm that uses scan**
