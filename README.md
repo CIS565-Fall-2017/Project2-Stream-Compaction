@@ -26,14 +26,23 @@ This project is tend to compare running performance difference in computing pref
 Performance Analysis
 ======================
 
+After trying I found for all the block size the program has the same performance, so I just chose the largest power of two as my block size.
+
 ![](img/1.png)
 
 ![](img/2.png)
 
+When includes the time of copy data from host to device, thrust scan and naive scan runs no faster then the CPU scan.
+
 ![](img/3.png)
+
+Even with data copy, the efficient scan runs faster then the CPU scan.
 
 ![](img/4.png)
 
+Only includes the time for computing, we can see the graph above.  Thrust scan may have some built-in operations that really cost time. Naive scan roughly has more memory access then efficient scan( n^2/2 vs 3*n) but fewer calculating and comparing operations. This means the battleneck is on the memory I/O. We cannot evaluate thrust since we don't even know what happens inside.
+
+There is a very interesting that power-of-two thrust scan really spent some time. Comparing what I know for access array on ram with power-of-two length, this maybe the consequence for access confliction due to the time cost of finding next memory unit on hardware.
 
 ### Running Result
 
