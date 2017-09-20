@@ -23,7 +23,7 @@ Extra Credit:
 * I use the new Work-Efficient method without branches in the following analysis to show its "efficiency" better.
 
 
-## Performance analysis
+## Performance Analysis
 
 ### Comparison of GPU Scan (Naive, Work-Efficient) for different block size.
 
@@ -81,17 +81,17 @@ We can tell from the data above that in both scan and stream compaction:
 
 * Roughly optimize the block sizes of each of your implementations for minimal run time on your GPU.
   
-  Check [**Performance analysis**](#performance-analysis) for graph comparison. 
+  Check [**Performance Analysis**](#performance-analysis) for graph comparison. 
   
   As I mentioned above, there is no major performance difference between different blocksize.
 
 * Compare all of these GPU Scan implementations (Naive, Work-Efficient, and Thrust) to the serial CPU version of Scan. Plot a graph of the comparison (with array size on the independent axis).
   
-  Check [**Performance analysis**](#performance-analysis) for graph comparison.
+  Check [**Performance Analysis**](#performance-analysis) for graph comparison.
   
-  In conclusion, when the array size is not to huge, CPU implementation is always better than GPU versions. However, if the array size is very huge, the parallel computation in GPU is faster. Also, Thrust method is always very stable no matter how the size of array changes.
+  In conclusion, when the array size is not too huge, CPU implementation is always better than GPU versions. However, if the array size is very huge, the parallel computation in GPU is faster. Also, Thrust method is always very stable no matter how the size of array changes.
   
-  As for Thrust implementation, I guess that share memory may be used , so it's more efficient than other GPU methods as the memory access is faster.
+  As for Thrust implementation, I guess that share memory may be used, so it's more efficient than other GPU methods as the memory access is faster.
     
 * Write a brief explanation of the phenomena you see here.
   
