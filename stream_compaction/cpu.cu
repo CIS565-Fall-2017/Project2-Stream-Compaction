@@ -18,9 +18,16 @@ namespace StreamCompaction {
          * (Optional) For better understanding before starting moving to GPU, you can simulate your GPU scan in this function first.
          */
         void scan(int n, int *odata, const int *idata) {
-	        timer().startCpuTimer();
-            // TODO
-	        timer().endCpuTimer();
+	        //timer().startCpuTimer();
+
+          odata[0] = 0;
+
+          for (int i = 1; i < n; i++)
+          {
+            odata[i] = odata[i - 1] + idata[i - 1];
+          }
+
+	        //timer().endCpuTimer();
         }
 
         /**
@@ -29,10 +36,21 @@ namespace StreamCompaction {
          * @returns the number of elements remaining after compaction.
          */
         int compactWithoutScan(int n, int *odata, const int *idata) {
+          int j = 0;
+
 	        timer().startCpuTimer();
-            // TODO
+
+          for (int i = 0; i < n; i++)
+          {
+            if (idata[i] != 0)
+            {
+              odata[j++] = idata[i];
+            }
+          }
+
 	        timer().endCpuTimer();
-            return -1;
+
+          return j;
         }
 
         /**
@@ -41,10 +59,37 @@ namespace StreamCompaction {
          * @returns the number of elements remaining after compaction.
          */
         int compactWithScan(int n, int *odata, const int *idata) {
+          int *scanResult = new int[n];
+          int j = 0;
+
 	        timer().startCpuTimer();
-	        // TODO
+
+          for (int i = 0; i < n; i++)
+          {
+            odata[i] = idata[i] == 0 ? 0 : 1;
+          }
+
+          scan(n, scanResult, odata);
+
+          for (int i = 0; i < n-1; i++)
+          {
+            if (odata[i] == 1)
+            {
+              odata[scanResult[i]] = idata[i];
+              j++;
+            }
+          }
+
+          if (odata[n - 1] == 1)
+          {
+            odata[scanResult[n - 1] + 1] = idata[n - 1];
+            j++;
+          }
+
 	        timer().endCpuTimer();
-            return -1;
+
+          free(scanResult);
+          return j;
         }
     }
 }
