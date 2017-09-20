@@ -36,9 +36,6 @@ I implement **Scan**, (and using it, Stream Compaction) with a straightforward C
 ## Preliminary Analysis
 
 ### Scan Analysis
-
-#### Comparing CPU and GPU
-
 | Array Size vs Runtime in ms	| CPU	| Naive	| Work Efficient |	Thrust	| Thrust 2nd Run |
 |-------------|-----|-------|----------------|----------|----------------|
 |256	| 0.0006	|  0.048| 	0.083	| 0.081|0.014|
@@ -55,6 +52,9 @@ I implement **Scan**, (and using it, Stream Compaction) with a straightforward C
 |50000	| 0.077	|  0.31	|   0.22 | 	1.1	| 0.21|
 |65536	| 0.097	|  0.38	|   0.22 | 	1.2	| 0.29| 
 
+#### Comparing CPU and GPU
+
+
 ![](img/StreamProjection1.png)
 
 The first thing to notice about the GPU implementations is that they are rather slow, especially compared to the CPU implementations. This is almost certainly a result of the global memory accesses in both Naive and Work-Efficient. Since global memory access is usually a ~200 cycle operation, it's drastically costly, even with clever indexing to retire threads early. A truly optimized implementation of Scan on the GPU would leverage shared memory. 
@@ -69,4 +69,18 @@ No analysis would be complete without comparing my implementation to a standard 
 
 ### Compaction Analysis
 
+|Array Size vs 	| CPU Compact w/o Scan	| CPU Compact w/ Scan |	GPU Compact (requires Scan) |
+|---|---|---|---|
+|256	|0.0009|	0.0037|	0.12|
+|512	|0.0015|	0.0066|	0.12|
+|1024	|0.003	|0.019	|0.16|
+|2048	|0.0054|	0.024	|0.14|
+|4096	|0.0095|	0.022	|0.14|
+|8192	|0.02	 |0.038	  |0.16|
+|16384|	0.039	| 0.075	|0.19|
+|32768|	0.11	| 0.19	|0.22|
+|65536|	0.16	| 0.42	|0.3|
+
 ![](img/StreamProjection3.png)
+Important observations here are that the equivalent `compact with Scan` implementations for GPU vs CPU have similar growth qualities as our Scan functions, which they implement. Our GPU Compaction scales better, while our CPU Compaction grows quite a bit larger with input sizes. Scan is not required on the CPU though, so our implementation that doesn't utilize Scan is predictably much faster. Here, our global memory accesses are hurting us again with our GPU implementation. 
+
