@@ -7,6 +7,10 @@ set(SOURCE_FILES
     "naive.cu"
     "efficient.h"
     "efficient.cu"
+	"efficientShared.h"
+    "efficientShared.cu"
+	"radixSort.h"
+	"radixSort.cu"
     "thrust.h"
     "thrust.cu"
     )
