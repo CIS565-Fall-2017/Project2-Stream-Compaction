@@ -59,3 +59,80 @@ On the other hand, for larger arrays (size >= 2^17), the Thrust and work-efficie
 For larger sizes, the parallel nature of the GPU algorithms allows them to scale better than the CPU scan, making them outperform it in spite of the overhead mentioned above. The lack of work-efficiency in the naive scan exaggerates the effect of this overhead, such that it still cannot truly benefit from the parallel algorithm.
 
 
+### Output of test program
+
+```
+****************
+** SCAN TESTS **
+****************
+    [   0   2   4   6   8  10  12  14  16  18  20  22  24 ... 2097148   0 ]
+==== cpu scan, power-of-two ====
+   elapsed time: 2.00278ms    (std::chrono Measured)
+    [   0   0   2   6  12  20  30  42  56  72  90 110 132 ... -5242874 -3145726 ]
+==== cpu scan, non-power-of-two ====
+   elapsed time: 2.06076ms    (std::chrono Measured)
+    [   0   0   2   6  12  20  30  42  56  72  90 110 132 ... -11534306 -9437164 ]
+    passed
+==== naive scan, power-of-two ====
+   elapsed time: 3.72906ms    (CUDA Measured)
+    passed
+==== naive scan, non-power-of-two ====
+   elapsed time: 3.71254ms    (CUDA Measured)
+    passed
+==== (Skipping efficient shared tests due to large array size... ====
+==== work-efficient scan, power-of-two ====
+   elapsed time: 1.13066ms    (CUDA Measured)
+    passed
+==== work-efficient scan, non-power-of-two ====
+   elapsed time: 1.12355ms    (CUDA Measured)
+    passed
+==== thrust scan, power-of-two ====
+   elapsed time: 0.434176ms    (CUDA Measured)
+    [   0   0   2   6  12  20  30  42  56  72  90 110 132 ... -5242874 -3145726 ]
+    passed
+==== thrust scan, non-power-of-two ====
+   elapsed time: 0.324608ms    (CUDA Measured)
+    passed
+
+*****************************
+** STREAM COMPACTION TESTS **
+*****************************
+    [   3   0   3   3   2   1   0   1   3   0   1   3   1 ...   0   0 ]
+==== cpu compact without scan, power-of-two ====
+   elapsed time: 4.4078ms    (std::chrono Measured)
+    [   3   3   3   2   1   1   3   1   3   1   2   2   1 ...   1   1 ]
+    passed
+==== cpu compact without scan, non-power-of-two ====
+   elapsed time: 4.15727ms    (std::chrono Measured)
+    [   3   3   3   2   1   1   3   1   3   1   2   2   1 ...   1   1 ]
+    passed
+==== cpu compact with scan ====
+   elapsed time: 12.2661ms    (std::chrono Measured)
+    [   3   3   3   2   1   1   3   1   3   1   2   2   1 ...   1   1 ]
+    passed
+==== work-efficient compact, power-of-two ====
+   elapsed time: 1.6975ms    (CUDA Measured)
+    passed
+==== work-efficient compact, non-power-of-two ====
+   elapsed time: 1.66893ms    (CUDA Measured)
+    passed
+
+****************
+** SORT TESTS **
+****************
+    [  31 224 191 175 102  29  20 205 247 228 145  35 209 ...  32   0 ]
+==== cpu std::sort, power-of-two ====
+   elapsed time: 12.2661ms    (std::chrono Measured)
+    [   0   0   0   0   0   0   0   0   0   0   0   0   0 ... 255 255 ]
+==== gpu radix sort, power-of-two ====
+   elapsed time: 14.8428ms    (CUDA Measured)
+    [   0   0   0   0   0   0   0   0   0   0   0   0   0 ... 255 255 ]
+    passed
+==== cpu std::sort, non-power-of-two ====
+   elapsed time: 12.2661ms    (std::chrono Measured)
+    [   0   0   0   0   0   0   0   0   0   0   0   0   0 ... 255 255 ]
+==== gpu radix sort, non-power-of-two ====
+   elapsed time: 15.3363ms    (CUDA Measured)
+    [   0   0   0   0   0   0   0   0   0   0   0   0   0 ... 255 255 ]
+    passed
+```
