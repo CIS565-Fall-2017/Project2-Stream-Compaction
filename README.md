@@ -54,7 +54,7 @@ Here are the analysis results from my implementations:
 
 ![](img/graphAllScans.png)
 
-Here we can get a general vibe that the naive parallel scan didn't work so well, the CPU scan performed decently, and adding the work-efficient implementation is a must, and thrust wins easily.
+Here we can get a general vibe that the naive parallel scan didn't work so well, the CPU scan performed decently (relying on the cache isn't that bad in this case where we are simply iterating down the array sequentially!), adding the work-efficient optimization is a must, and thrust wins easily.
 
 One major aspect to note is the difference between the two work-efficient parallel scans. One utilizes a naive arrangement of block launching and the other is more intelligent (only launching
 threads as needed). To be more specific, during the work-efficient algorithm, we are not updating every element of the input array during every iteration of the algorithm - in fact, we are updating
@@ -68,7 +68,7 @@ Now the work-efficient parallel scan is good, but still, the 3rd party Thrust im
 
 ![](img/graphGPU.png)
 
-There are further optimizations that can be added to the work-efficient parallel scan that can help it compete with Thrust, such as utilizing shared memory, but they weren't completed for this project (yet!).
+There are further optimizations that can be added to the work-efficient parallel scan that can help it compete with Thrust, such as utilizing shared memory to minimize reads from global memory (a major slowdown), but they weren't completed for this project (yet!).
 
 Here is the raw output from the program:
 ![](img/output1.png)
