@@ -23,5 +23,11 @@ As the graph shows, naive scan takes extreme long time to finish the job while t
 
 Possible ways to further enhance the performance in the future includes using shared memory and dividing  and scanning the array by blocks.
 
-The timeline of execution is as follows:
+Another worth noticing is that thrust runs way faster when the array size is non multiple of two. 
+
+The timeline of execution when the array size is 2^20 is as follows:
 ![img_2](https://github.com/wufk/Project2-Stream-Compaction/blob/master/img/proj2Perform.PNG)
+
+It shows that CUDA library of memery manipulation is very expensive. Furthermore, we can see that using thrust and using our own algorithms of scanning is calling different CUDA runtime API. Thrust is calling cudaDeviceSynchronize function while our algorithms call cudaEventSynchronize. This may partly explain why thrust run way faster, in that it is optimized in device and hardware while our effort is just focusing on algorithm and high level part.
+
+In summary, to get better performance in GPU computing, architecture makes a huge difference and optimization must focus on better allocating resources and making use of the specaiality of GPU hardware. 
