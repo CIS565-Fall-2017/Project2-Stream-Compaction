@@ -12,7 +12,7 @@ This project consists of a series of implementations of the inclusive/exclusive 
 We implement a sequential CPU scan, a non-work-efficient GPU scan (naive), and an actually work-efficient GPU scan.
 
 A scan is a prefix sum (assuming an array of integers for now), meaning that the index i in the output array will consist of the sum of each previous element
-in the input array. Here's a concrete example of each kind of scan, taken from the slides by Patrick Cozzi and Shehzan Mohammed at: https://docs.google.com/presentation/d/1ETVONA7QDM-WqsEj4qVOGD6Kura5I6E9yqH-7krnwZ0/edit#slide=id.p27
+in the input array. Here's a concrete example of each kind of scan, taken from the slides by Patrick Cozzi and Shehzan Mohammed [here](https://docs.google.com/presentation/d/1ETVONA7QDM-WqsEj4qVOGD6Kura5I6E9yqH-7krnwZ0/edit#slide=id.p27)
 
 ![](img/scans.png)
 
@@ -31,6 +31,7 @@ This step is called scatter:
 
 Now we are left with our desired array.
 
+## Analysis
 Here are the analysis results from my implementations:
 ![](img/graph.png)
 
