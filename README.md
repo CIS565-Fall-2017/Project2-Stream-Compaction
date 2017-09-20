@@ -88,6 +88,8 @@ Unfortunately, this specific implementation is limited in that it only correctly
 
 I noticed I could invoke my up-sweep and down-sweep kernels with a different number of blocks and threads per block at each iteration, since each iteration operates on a different number of elements in the array. This, together with a calculation of a "nodeIdx" in those kernels, allow me to invoke fewer kernels when the algorithm allows for it (i.e. when the sweeps are closer to the root).
 
+This adds value by improving the performance of the GPU approach enough that, even with global memory accesses, it can outperform the CPU scan for large enough arrays.
+
 ### Radix Sort ("Part 6")
 
 I implemented a GPU radix sort using my work-efficient GPU scan with global memory. It may be invoked with:
@@ -104,9 +106,11 @@ We can see the CPU sort starts out faster, but the parallel nature of the GPU so
 
 It should be noted the elements in the array were all <= 256. This is perhaps an advantage for the radix sort, as it thrives when it has to compare keys that that require fewer bits to be represented in memory.
 
+This radix sort adds value by providing a relatively fast way of sorting small keys, while also showcasing an additional application of the GPU scan algorithm.
+
 ### GPU scan with shared memory ("Part 7")
 
-The performance of the work-efficient GPU scan with shared memory has been analyzed above. It may be invoked as follows:
+The performance of the work-efficient GPU scan with shared memory has been analyzed above. The value added by this can be seen exactly in that performance improvement. It may be invoked as follows:
 
 `
 StreamCompaction::EfficientShared::scan(size, out, in);
