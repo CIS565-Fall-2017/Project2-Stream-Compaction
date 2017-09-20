@@ -96,6 +96,14 @@ I implemented a GPU radix sort using my work-efficient GPU scan with global memo
 StreamCompaction::RadixSort::radixSort(size, out, in, ascending);
 `
 
+The radix sort is tested in the main test program by comparing its output with std::sort. Below is a graph comparing the runtimes of the GPU radix sort and the CPU std::sort:
+
+![](img/radix.png)
+
+We can see the CPU sort starts out faster, but the parallel nature of the GPU sort allows it to scale better and peform better for larger arrays. Again, this is likely due to the overhead of launching multiple threads and accessing global memory slowing down the GPU approach initially, but as the arrays grow, more warps can be launched in order to amortize those costs.
+
+It should be noted the elements in the array were all <= 256. This is perhaps an advantage for the radix sort, as it thrives when it has to compare keys that that require fewer bits to be represented in memory.
+
 ### GPU scan with shared memory ("Part 7")
 
 The performance of the work-efficient GPU scan with shared memory has been analyzed above. It may be invoked as follows:
