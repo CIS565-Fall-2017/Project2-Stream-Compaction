@@ -60,24 +60,24 @@ The goal of this project was to run an algorithm that clears out all zeros from 
 
 All tests were run on a range of input from 2^7 (128) all the way to 2^15 (32768) sized arrays. This means that if my algorithms ran in linear O(n) time, then I should get a correlated graph that matches how fast my input increases, in other words, I should get an exponential graph such as this:
 
-![O(n)](/images/correlation.png)
+![O(n)](/img/correlation.PNG)
 
 ####Scan Algorithms
 
 So for my scan algorithms I didn't initially see anything interesting about my results. It seemed that they were just randomly consistent. Here is what I got with all my scan algorithms, GPU and CPU, side-by-side:
 
-![All of them](/images/scan-with-thrust.png)
+![All of them](/img/scan-with-thrust.PNG)
 
 Now you can see that there is a massive outlier: The Thrust scan with a power-of-two number of elements in the array. Since I didn't implement it, and it's skewing all the results and making them unreadable, let's take it out. We are left with this:
 
 
-![All of them no thrust](/images/scan-without-thrust.png)
+![All of them no thrust](/img/scan-without-thrust.PNG)
 
 Now, we can still see some separation between the top results that were GPU-based, and the lower, CPU-based results. So let's start first with the latter.
 
 *CPU Runtimes:*
 
-![CPU Runtimes](/images/scan-cpu.png)
+![CPU Runtimes](/img/scan-cpu.PNG)
 
 Disregarding the weird fluke in the end, I think it's obvious that this algorithm is more or less O(n). This makes perfect sense as my CPU algorithms run through the array only once. So I've established a baseline to beat.
 
@@ -85,7 +85,7 @@ Here is what it looks like with my GPU algorithms by themselves:
 
 *GPU Runtimes:*
 
-![GPU Runtimes](/images/scan-gpu.png)
+![GPU Runtimes](/img/scan-gpu.PNG)
 
 
 Now, despite my GPU algorithms being slower than my CPU ones strictly in terms of runtime in milliseconds, it is clear that they scale much better than my CPU-based ones. This is the benefit of parallelization I'm assuming. The trendlines (dashed lines) show a clear linear correlation to my exponential input. This means that my GPU algorithms are better. Despite the bottleneck. (more on that in the [observations](#observations)).
@@ -95,17 +95,17 @@ Now, despite my GPU algorithms being slower than my CPU ones strictly in terms o
 
 With compact algorithms, we see the same trend continue. Here are the CPU algorithms:
 
-![CPU Compact Runtimes](/images/compact-cpu.png)
+![CPU Compact Runtimes](/img/compact-cpu.PNG)
 
 and here is what the GPU Algorithms look like:
 
-![GPU Compact Runtimes](/images/compact-gpu.png)
+![GPU Compact Runtimes](/img/compact-gpu.PNG)
 
 Again, we can see a linear GPU trendline, and an exponential trend with CPU. This is not a surprise as compact algorithms are based on the scan algorithms.
 
 For reference, here is the CPU+GPU graph of compact algorithm runtimes:
 
-![All Compact Runtimes](/images/compact.png)
+![All Compact Runtimes](/img/compact.PNG)
 
 
 ---------------------------------
@@ -138,7 +138,7 @@ Now because this is fairly abstract, I made a visualization of the algorithm run
 
 As far as runtimes go for this, they were actually closer to O(n), which is fairly accurate considering that is the runtime for radix sort. However, this should be faster. My guess is that this was because of the global memory that was being accessed back and forth. This also probably contributed to the increase in ~4ms around all array sizes. Here are the runtimes:
 
-![Radix Sort Runtimes](/images/radix.png)
+![Radix Sort Runtimes](/img/radix.PNG)
 
 
 ### My Block Size Optimization:
