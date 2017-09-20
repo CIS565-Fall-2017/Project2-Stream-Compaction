@@ -15,30 +15,30 @@ The scan algorithms were implemented on -
 - Work-efficient Scan on GPU
 - Scan using Thrust on GPU.
 
-### Performance Analysis
+Performance Analysis
 -------------------------
 
 Block Sizes were varied from 16 to 1024. The performance peaked around 64,128 and 256. I selected to benchmark the performance graphs on block size of 128.
 
-Time(in ms) vs Number of elements in array
-------------------------------------------
+### Time(in ms) vs Number of elements in array
+----------------------------------------------
 
 ![](img/scan.jpg)
 
-![](img/Data.PNG)
+![](img/Data.png)
 
 The size of array was increased incrementally with a magnitude of 2^4. The transistion from 2^16 to 2^20 showed a signinficant diversion between thrust and naive GPU impementation. Also a difference between Work-Efficient and naive GPU implementation was observed. The Work-efficient GPU Scan could be optimized much more by using shared memory, which will reflect ina future benchmark test. 
 
-Scan Results
-------------
+### Scan Results
+----------------
 
 Tested on array size of 512
 
-![](img/scanRes.PNG)
+![](img/scanRes.png)
 
-Stream Compaction Results
--------------------------
+### Stream Compaction Results
+-----------------------------
 
 Tested on array size of 512
 
-![](img/compactRes.PNG)
+![](img/compactRes.png)
