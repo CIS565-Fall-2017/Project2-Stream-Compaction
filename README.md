@@ -12,7 +12,7 @@ CUDA Stream Compaction
 
 ## Details
 
-This project implements and compares different algorithms for scan and stream compaction, both in GPU and CPU. In particular, it implements a serial version, a naive parallel version, a work efficient version and an implementation from the Thrust library. A simple CSV exporter for performance evaluation is also included.
+This project implements and compares different algorithms for scan and stream compaction, both in GPU and CPU. In particular, it implements a serial version, a naive parallel version, a work efficient version and an implementation from the Thrust library. A simple CSV exporter for automated performance evaluation is also included.
 
 ## Note about Work Efficient implementation
 
