@@ -21,6 +21,8 @@ Tested on: Windows 10, Intel Core i7-7700HQ CPU @ 2.80 GHz, 8GB RAM, NVidia GeFo
 
 - [Observations](#observations)
 
+- [My Block Size Optimizations](#my block size optimizations)
+
 
 
 - [Blooper](#blooper)
