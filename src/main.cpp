@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
     printf("****************\n");
     printf("** SCAN TESTS **\n");
     printf("****************\n");
-
+	printf("Size:  %d\n", SIZE);
     genArray(SIZE - 1, a, 50);  // Leave a 0 at the end to test that edge case
     a[SIZE - 1] = 0;
     printArray(SIZE, a, true);
@@ -52,8 +52,7 @@ int main(int argc, char* argv[]) {
     
     
 	printDesc("naive scan, power-of-two");
-	for (int i{0}; i < 10; ++i)
-          StreamCompaction::Naive::scan(SIZE, c, a);
+    StreamCompaction::Naive::scan(SIZE, c, a);
     printElapsedTime(StreamCompaction::Naive::timer().getGpuElapsedTimeForPreviousOperation(), "(cuda measured)");
     printArray(SIZE, c, true);
     printCmpResult(SIZE, b, c);
@@ -68,8 +67,7 @@ int main(int argc, char* argv[]) {
 
     zeroArray(SIZE, c);
     printDesc("work-efficient scan, power-of-two");
-	for (int i{0}; i < 10; ++i)
-        StreamCompaction::Efficient::scan(SIZE, c, a);
+    StreamCompaction::Efficient::scan(SIZE, c, a);
     printElapsedTime(StreamCompaction::Efficient::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
     printArray(SIZE, c, true);
     printCmpResult(SIZE, b, c);
