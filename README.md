@@ -58,7 +58,7 @@ For the performance analysis I have used a block size of 128 and logged the exec
 
 * Chart:
 
-    ![Performance Chart](img/TableChart.PNG)
+    ![Performance Chart](img/TableChart.png)
 
 
 - Analysis:
