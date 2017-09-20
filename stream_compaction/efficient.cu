@@ -13,7 +13,7 @@ namespace StreamCompaction {
         }
 
 #define blockSize 32
-#define MAX_BLOCK_SIZE 32
+#define MAX_BLOCK_SIZE 16
 #define checkCUDAErrorWithLine(msg) ((void)0) 
         //checkCUDAError(msg, __LINE__)
 #define USE_CUDA_DEV_SYNC 0
@@ -47,6 +47,10 @@ namespace StreamCompaction {
          * device memory and does not use gpuTimer.
          */
         void scan(int n, int *odata, const int *idata, bool internalUse) {
+          if (n == 1) {
+            odata[0] = 0;
+            return;
+          }
           // TODO: handle n <= 2 ???
           // nearest power of two
           const int bufSize = 1 << ilog2ceil(n);
@@ -60,7 +64,7 @@ namespace StreamCompaction {
             checkCUDAErrorWithLine("malloc dev_buf error!!!");
 
             if (n != bufSize) {
-              cudaMemset(dev_buf, 0, bufSize * sizeof(int));
+              cudaMemset(dev_buf + n, 0, (bufSize - n) * sizeof(int));
               checkCUDAErrorWithLine("memset dev_buf to 0 error!!!");
             }
 

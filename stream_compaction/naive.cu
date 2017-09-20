@@ -57,8 +57,8 @@ namespace StreamCompaction {
           // start scan iterations
           int pingPongCount = 0;
           for (int offset = 1; offset < n; offset *= 2) {
-            ++pingPongCount;
-            if (pingPongCount % 2) {
+            pingPongCount = 1 - pingPongCount;
+            if (pingPongCount) {
               scanIteration << <numBlocks, blockSize >> >(n, dev_bufB, dev_bufA, offset);
             }
             else {
@@ -71,7 +71,7 @@ namespace StreamCompaction {
           }
           timer().endGpuTimer();
 
-          if (pingPongCount % 2) {
+          if (pingPongCount) {
             // output is in bufB
             cudaMemcpy(odata, dev_bufB, n * sizeof(int), cudaMemcpyDeviceToHost);
           }

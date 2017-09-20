@@ -85,6 +85,7 @@ namespace StreamCompaction {
         }
       }
     }
+
     void radixSort(int n, int *odata, const int *idata, bool ascending) {
       int *dev_highBitsBuf; 
       int *dev_originalData;
@@ -155,11 +156,14 @@ namespace StreamCompaction {
         // compute trues and scatter
         computeTrueAndScatter << <numBlocks, blockSize >> > (n, dev_postScatterBuf, dev_falseBuf, dev_originalData, dev_totalFalsesBuf, passMask, ascending);
         
-        cudaMemcpy(dev_originalData, dev_postScatterBuf, n * sizeof(int), cudaMemcpyDeviceToDevice);
-        checkCUDAErrorWithLine("memcpy postScatter to originalData error!!!");
+        if (bitIdx < maxBitIdx) {
+          // if not last iteration
+          cudaMemcpy(dev_originalData, dev_postScatterBuf, n * sizeof(int), cudaMemcpyDeviceToDevice);
+          checkCUDAErrorWithLine("memcpy postScatter to originalData error!!!");
 
-        // move passMask to next bit
-        passMask <<= 1;
+          // move passMask to next bit
+          passMask <<= 1;
+        }
       }
 
       timer().endGpuTimer();
