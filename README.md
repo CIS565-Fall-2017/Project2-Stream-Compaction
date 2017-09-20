@@ -21,5 +21,6 @@ Based on the timeline, there are many back and forth copys from the GPU to main 
 Even though the thrust implementation uses all of these copys, it is still faster than my GPU attempts. I suspect this is due to memory accesses.
 
 ![](./img/power_of_two.PNG)
+
 The previous graph is based on a debug build.
 An interesting thing to note is that the thrust implementation is less optimal in a debug setting compared to the release build.
