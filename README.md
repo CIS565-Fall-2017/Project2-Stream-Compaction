@@ -31,8 +31,20 @@ This step is called scatter:
 
 Now we are left with our desired array.
 
-## Analysis
+### Analysis
 Here are the analysis results from my implementations:
-![](img/graph.png)
 
-yay it all worked p much
+![](img/graphAllScans.png)
+
+Here we can get a general vibe that the naive parallel scan didn't work so well, the CPU scan performed decently, and adding the work-efficient implementation is a must, and thrust wins easily.
+
+One major aspect to note is the difference between the two work-efficient parallel scans. One utilizes a naive arrangement of block launching and the other is more intelligent (only launching
+threads as needed). In the following graph, we can see that this optimization is what allows the parallel implementation to outperform the CPU implementation:
+
+![](img/graphGPUandCPU.png)
+
+Now the work-efficient parallel scan is good, but still, the 3rd party Thrust implementation still by far outperforms all other implementations (as you can see in the first graph too):
+
+![](graphGPU.png)
+
+There are further optimizations that can be added to the work-efficient parallel scan that can help it compete with Thrust, such as utilizing shared memory, but they weren't completed for this project (yet!).
