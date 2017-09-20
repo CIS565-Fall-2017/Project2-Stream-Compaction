@@ -13,13 +13,21 @@
 #include <stream_compaction/thrust.h>
 #include "testing_helpers.hpp"
 
-const int SIZE = 1 << 8; // feel free to change the size of array
-const int NPOT = SIZE - 3; // Non-Power-Of-Two
+const int SIZE = 1 << 20; // feel free to change the size of array
+const int NPOT = SIZE - 5; // Non-Power-Of-Two
 int a[SIZE], b[SIZE], c[SIZE];
 
-int main(int argc, char* argv[]) {
-    // Scan tests
+int testInput[] = { 1, 5, 0, 1, 2, 0, 3 };
+int testOutput[] = { 0, 1, 6, 6, 7, 9, 9 };
 
+int testCompactionInput[] = { 1, 5, 0, 1, 2, 0, 3 };
+int testCompactionOutput[] = { 1, 5, 1, 2, 3 };
+
+int main(int argc, char* argv[]) {
+
+	printf("SIZE: %d", SIZE);
+
+    // Scan tests
     printf("\n");
     printf("****************\n");
     printf("** SCAN TESTS **\n");
@@ -28,6 +36,18 @@ int main(int argc, char* argv[]) {
     genArray(SIZE - 1, a, 50);  // Leave a 0 at the end to test that edge case
     a[SIZE - 1] = 0;
     printArray(SIZE, a, true);
+
+	// Test example
+	zeroArray(7, b);
+	printDesc("cpu scan, results test");
+	StreamCompaction::CPU::scan(7, b, testInput);
+	bool pass = true;
+	for (int i = 0; i < 7; ++i)
+		if (testOutput[i] != b[i])
+			pass = false;
+	printDesc((std::string("PASS: ") + (pass ? "YES": "NO")).c_str());
+	printArray(7, testOutput, true);
+	printArray(7, b, true);
 
     // initialize b using StreamCompaction::CPU::scan you implement
     // We use b for further comparison. Make sure your StreamCompaction::CPU::scan is correct.
@@ -100,6 +120,16 @@ int main(int argc, char* argv[]) {
 
     int count, expectedCount, expectedNPOT;
 
+	// Test results
+	zeroArray(SIZE, b);
+	printDesc("cpu compact without scan, power-of-two");
+	count = StreamCompaction::CPU::compactWithoutScan(7, b, testCompactionInput);
+	pass = cmpArrays(5, testCompactionOutput, b) == 0;
+	printDesc((std::string("PASS: ") + (pass ? "YES" : "NO")).c_str());
+	expectedCount = count;
+	printArray(count, b, true);
+	printArray(5, testCompactionOutput, true);
+
     // initialize b using StreamCompaction::CPU::compactWithoutScan you implement
     // We use b for further comparison. Make sure your StreamCompaction::CPU::compactWithoutScan is correct.
     zeroArray(SIZE, b);
@@ -138,6 +168,15 @@ int main(int argc, char* argv[]) {
     printElapsedTime(StreamCompaction::Efficient::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
     //printArray(count, c, true);
     printCmpLenResult(count, expectedNPOT, b, c);
+
+	bool generateCSV = true;
+
+
+	if (generateCSV)
+	{
+
+	}
+
 
     system("pause"); // stop Win32 console from closing on exit
 }
