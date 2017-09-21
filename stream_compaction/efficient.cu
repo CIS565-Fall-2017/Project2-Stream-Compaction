@@ -151,7 +151,6 @@ namespace StreamCompaction {
 
 
             timer().startGpuTimer();
-            // TODO
 
 			// Step 1 : Up-sweep
 			for (int d = 0; d <= dMax - 1; d++) {
@@ -240,7 +239,6 @@ namespace StreamCompaction {
 
 
             timer().startGpuTimer();
-            // TODO
 			// Step 1 : compute bools array
 			StreamCompaction::Common::kernMapToBoolean << <gridDim, blockDim >> > (n, bools, dev_idata);
 			checkCUDAError("kernMapToBoolean failed!");
@@ -335,11 +333,10 @@ namespace StreamCompaction {
 
 			kernScanDynamicShared << <gridDim, blockDim, sharedMemoryPerBlockInBytes >> > (size, dynamicMemoBlockSize, dev_data, dev_data, ori_root);
 
-			// TODO : 
-			// Only support maximum size blockSize * blockSize = 64 * 64 = 4096 number support now
-			// and we only scan origin root one time here.
-
 			sharedMemoryPerBlockInBytes = gridDim.x * sizeof(int);
+			// We only do scan of scan ONE time here
+			// Actually, it should be a while loop here
+			// This process should happen until root number we get < blockDim.x
 			kernScanDynamicShared << < dim3(1), dim3(gridDim.x), sharedMemoryPerBlockInBytes >> > (gridDim.x, gridDim.x, ori_root, ori_root, ori_root);
 			kernAddOriRoot << <gridDim, blockDim >> > (size, ori_root, dev_data);
 
@@ -379,7 +376,6 @@ namespace StreamCompaction {
 			checkCUDAError("efficient compact cudaMemcpy failed!");
 
 
-
 			// scan Set-up
 			int dMax = ilog2ceil(n);
 			int size = (int)powf(2.0f, (float)dMax);
@@ -414,6 +410,9 @@ namespace StreamCompaction {
 			kernScanDynamicShared << <scan_gridDim, blockDim, sharedMemoryPerBlockInBytes >> > (size, blockDim.x, indices, indices, ori_root);
 
 			sharedMemoryPerBlockInBytes = gridDim.x * sizeof(int);
+			// We only do scan of scan ONE time here
+			// Actually, it should be a while loop here
+			// This process should happen until root number we get < blockDim.x
 			kernScanDynamicShared << < dim3(1), dim3(gridDim.x), sharedMemoryPerBlockInBytes >> > (scan_gridDim.x, scan_gridDim.x, ori_root, ori_root, ori_root);
 			kernAddOriRoot << <scan_gridDim, blockDim >> > (size, ori_root, indices);
 
@@ -430,7 +429,6 @@ namespace StreamCompaction {
 
 			cudaMemcpy(&count, dev_count, sizeof(int), cudaMemcpyDeviceToHost);
 			checkCUDAError("cudaMemcpy failed!");
-
 			cudaMemcpy(odata, dev_odata, sizeof(int) * count, cudaMemcpyDeviceToHost);
 			checkCUDAError("cudaMemcpy failed!");
 

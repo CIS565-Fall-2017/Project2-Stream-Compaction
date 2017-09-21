@@ -13,7 +13,6 @@ namespace StreamCompaction {
             static PerformanceTimer timer;
             return timer;
         }
-        // TODO: __global__
 		__global__ void kernGenExclusiveScanFromInclusiveScan(int N, int* dev_odata, int* dev_idata) {
 			int index = threadIdx.x + (blockIdx.x * blockDim.x);
 			if (index >= N) {
@@ -129,7 +128,6 @@ namespace StreamCompaction {
 
 			timer().startGpuTimer();
 
-            // TODO
 			for (int d = 1; d <= dMax; d++) {
 				// call cuda here
 				// PAY ATTENTION : this is an inclusive scan 
@@ -192,9 +190,9 @@ namespace StreamCompaction {
 
 			kernScanDynamicShared << <gridDim, blockDim, sharedMemoryPerBlockInBytes >> > (size, dynamicMemoBlockSize, dev_odata, dev_idata, ori_root);
 
-			// TODO : 
-			// Only support maximum size blockSize * blockSize = 64 * 64 = 4096 number support now
-			// and we only scan origin root one time.
+			// We only do scan of scan ONE time here
+			// Actually, it should be a while loop here
+			// This process should happen until root number we get < blockDim.x
 			sharedMemoryPerBlockInBytes = 2 * gridDim.x * sizeof(int);
 			kernScanDynamicShared << < dim3(1), gridDim, sharedMemoryPerBlockInBytes >> > (gridDim.x, gridDim.x, ori_root, ori_root, ori_root);
 			kernAddOriRoot << <gridDim, blockDim >> > (size, ori_root, dev_odata);
