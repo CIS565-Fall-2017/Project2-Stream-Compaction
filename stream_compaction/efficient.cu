@@ -12,69 +12,51 @@ namespace StreamCompaction {
             return timer;
         }
 
-		__global__ void upSweep(int n, int factorPlusOne, int factor, int *idata)
+		__global__ void upSweep(int n, int factorPlusOne, int factor, int addTimes, int *idata)
 		{
 			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
 
-			//if (index < n)
-			//{
-			//	if (index % factorPlusOne == 0)
-			//	{
-			//		idata[index + factorPlusOne - 1] += idata[index + factor - 1];
-			//	}
-
-			//	//Get it ready for downsweep
-			//	//if (index == n - 1)
-			//	//{
-			//	//	idata[index] = 0;
-			//	//}
-			//}
-
-
-
-			int newIndex = (factorPlusOne * (index + 1)) - 1;
-			if (newIndex < n)
+			if (index <= addTimes)
 			{
-				idata[newIndex] += idata[newIndex - factor];
+				int newIndex = (factorPlusOne * (index + 1)) - 1;
 
-				//if (newIndex == n - 1)
-				//{
-				//	idata[newIndex] = 0;
-				//}
+				if (newIndex < n)
+				{
+					idata[newIndex] += idata[newIndex - factor];
+
+					//if (newIndex == n - 1)
+					//{
+					//	idata[newIndex] = 0;
+					//}
+				}
 			}
+
+			
 
 		}//end upSweep function
 
-		__global__ void downSweep(int n, int factorPlusOne, int factor, int *idata)
+		__global__ void downSweep(int n, int factorPlusOne, int factor, int addTimes, int *idata)
 		{
-			//int index = (blockIdx.x * blockDim.x) + threadIdx.x;
-
-			//if (index < n)
-			//{
-			//	if (index % factorPlusOne == 0)
-			//	{
-			//		int leftChild = idata[index + factor - 1];
-			//		idata[index + factor - 1] = idata[index + factorPlusOne - 1];
-			//		idata[index + factorPlusOne - 1] += leftChild;
-			//	}
-			//}
-
 			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
-			int newIndex = (factorPlusOne * (index + 1)) - 1;
 
-			if (newIndex < n)
+			if (index <= addTimes)
 			{
-				int leftChild = idata[newIndex - factor];
-				idata[newIndex - factor] = idata[newIndex];
-				idata[newIndex] += leftChild;
+				int newIndex = (factorPlusOne * (index + 1)) - 1;
+
+				if (newIndex < n)
+				{
+					int leftChild = idata[newIndex - factor];
+					idata[newIndex - factor] = idata[newIndex];
+					idata[newIndex] += leftChild;
+				}
 			}
+
 		}//end downSweep function
 
 
 		__global__ void resizeArray(int n, int new_n, int *idata)
 		{
 			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
-
 			if (index < new_n && index >= n)
 			{
 				idata[index] = 0;
@@ -101,20 +83,6 @@ namespace StreamCompaction {
 			
 			//If non-power-of-two sized array, round to next power of two
 			int new_n = 1 << ilog2ceil(n);
-			//int *new_idata = (int *)malloc(sizeof(int) * new_n);
-
-			//for (int i = 0; i < new_n; i++)
-			//{
-			//	if (i < n)
-			//	{
-			//		new_idata[i] = idata[i];
-			//	}
-			//	else
-			//	{
-			//		new_idata[i] = 0;
-			//	}
-			//}
-			
 
 			dim3 fullBlocksPerGrid((new_n + blockSize - 1) / blockSize);
 
@@ -122,15 +90,10 @@ namespace StreamCompaction {
 			cudaMalloc((void**)&inArray, new_n * sizeof(int));
 			checkCUDAError("cudaMalloc inArray failed!");
 
-			//Copy input data to GPU
-			//cudaMemcpy(inArray, new_idata, sizeof(int) * new_n, cudaMemcpyHostToDevice);
-			//cudaThreadSynchronize();
-
-
+			//Copy input data to device array and resize if necessary
 			cudaMemcpy(inArray, idata, sizeof(int) * new_n, cudaMemcpyHostToDevice);
 			resizeArray<<<fullBlocksPerGrid, blockSize>>>(n, new_n, inArray);
 
-			
 			bool timerHasStartedElsewhere = false;
 			try
 			{
@@ -141,15 +104,25 @@ namespace StreamCompaction {
 				timerHasStartedElsewhere = true;
 			}
 
+			dim3 newNumBlocks = fullBlocksPerGrid;
+			
+
 			//Up sweep
 			for (int d = 0; d <= ilog2ceil(n) - 1; d++)
 			{
 				int factorPlusOne = 1 << (d + 1);	//2^(d + 1)
-				int factor = 1 << d;			//2^d
-				upSweep<<<fullBlocksPerGrid, blockSize>>>(new_n, factorPlusOne, factor, inArray);
+				int factor = 1 << d;				//2^d
+
+				int addTimes = 1 << (ilog2ceil(n) - 1 - d);
+				
+				newNumBlocks = ((new_n / factorPlusOne) + blockSize - 1) / blockSize;
+
+				upSweep<<<newNumBlocks, blockSize>>>(new_n, factorPlusOne, factor, addTimes, inArray);
 
 				//Make sure the GPU finishes before the next iteration of the loop
 				cudaThreadSynchronize();
+
+				
 			}
 
 			//Down sweep
@@ -160,7 +133,14 @@ namespace StreamCompaction {
 			{
 				int factorPlusOne = 1 << (d + 1);	//2^(d + 1)
 				int factor = 1 << d;				//2^d
-				downSweep<<<fullBlocksPerGrid, blockSize>>>(new_n, factorPlusOne, factor, inArray);
+
+				int addTimes = 1 << (ilog2ceil(n) - 1 - d);
+
+				newNumBlocks = ((new_n / factor) + blockSize - 1) / blockSize;
+
+				downSweep<<<newNumBlocks, blockSize>>>(new_n, factorPlusOne, factor, addTimes, inArray);
+
+
 				cudaThreadSynchronize();
 			}
 
@@ -173,10 +153,6 @@ namespace StreamCompaction {
 			cudaMemcpy(odata, inArray, sizeof(int) * (new_n), cudaMemcpyDeviceToHost);
 
 			//Free the arrays
-			//delete[] new_idata;
-
-			//free(new_idata);
-
 			cudaFree(inArray);
         }//end scan function 
 
@@ -193,19 +169,6 @@ namespace StreamCompaction {
 			// TODO
 			
 			int new_n = 1 << ilog2ceil(n);
-			//int *new_idata = (int *)malloc(sizeof(int) * new_n);
-
-			//for (int i = 0; i < new_n; i++)
-			//{
-			//	if (i < n)
-			//	{
-			//		new_idata[i] = idata[i];
-			//	}
-			//	else
-			//	{
-			//		new_idata[i] = 0;
-			//	}
-			//}
 
 			dim3 fullBlocksPerGrid((new_n + blockSize - 1) / blockSize);
 			
@@ -229,9 +192,7 @@ namespace StreamCompaction {
 			cudaThreadSynchronize();
 
 
-			//Copy input data to GPU
-			//cudaMemcpy(inArray, new_idata, sizeof(int) * new_n, cudaMemcpyHostToDevice);
-
+			//Copy input data to device array
 			cudaMemcpy(inArray, idata, sizeof(int) * new_n, cudaMemcpyHostToDevice);
 			resizeArray<<<fullBlocksPerGrid, blockSize>>>(n, new_n, inArray);
 
@@ -267,11 +228,8 @@ namespace StreamCompaction {
 			cudaMemcpy(odata, scatter_out, sizeof(int) * numPassedElements, cudaMemcpyDeviceToHost);
 
 			//Free the arrays
-			//free(new_idata);
 			free(scan_in);
 			free(scan_out);
-
-
 			cudaFree(inArray);
 			cudaFree(boolsArray);
 			cudaFree(scatter_in);

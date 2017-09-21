@@ -14,8 +14,9 @@
 #include "testing_helpers.hpp"
 
 
+const int SIZE = 1 << 22;
 //const int SIZE = 1 << 16;
-const int SIZE = 1 << 14;
+//const int SIZE = 1 << 14;
 //const int SIZE = 1 << 12;
 //const int SIZE = 1 << 10;
 //const int SIZE = 1 << 8;
@@ -28,7 +29,12 @@ const int SIZE = 1 << 14;
 //const int SIZE = 1 << 2; // = 4, feel free to change the size of array
 
 const int NPOT = SIZE - 3; // Non-Power-Of-Two
-int a[SIZE], b[SIZE], c[SIZE];
+//int a[SIZE], b[SIZE], c[SIZE];
+
+int *a = new int[SIZE];
+int *b = new int[SIZE];
+int *c = new int[SIZE];
+
 
 int main(int argc, char* argv[]) {
     // Scan tests
@@ -159,4 +165,10 @@ int main(int argc, char* argv[]) {
 	//Copying this b/c aparently it stops from my exe window from crashing on the first go
 	//Not sure why
 	system("pause"); // stop Win32 console from closing on exit
+
+
+	free(a);
+	free(b);
+	free(c);
 }
+
