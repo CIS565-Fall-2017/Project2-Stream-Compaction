@@ -11,10 +11,11 @@
 #include <stream_compaction/cpu.h>
 #include <stream_compaction/naive.h>
 #include <stream_compaction/efficient.h>
+#include <stream_compaction/sharedAndIndexing.h>
 #include <stream_compaction/thrust.h>
 #include "testing_helpers.hpp"
 
-const long SIZE = 1 << 12; // feel free to change the size of array //max size is 1<<22
+const long SIZE = 1 << 18; // feel free to change the size of array //max size is 1<<22
 const int NPOT = SIZE - 3; // Non-Power-Of-Two
 int a[SIZE], b[SIZE], c[SIZE];
 
@@ -94,6 +95,20 @@ int main(int argc, char* argv[]) {
     printElapsedTime(StreamCompaction::Thrust::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
     //printArray(NPOT, c, true);
     printCmpResult(NPOT, b, c);
+
+	zeroArray(SIZE, c);
+	printDesc("shared and Indexing scan, power-of-two");
+	StreamCompaction::Efficient::scan(SIZE, c, a);
+	printElapsedTime(StreamCompaction::Efficient::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
+	//printArray(NPOT, c, true);
+	printCmpResult(SIZE, b, c);
+
+	zeroArray(SIZE, c);
+	printDesc("shared and Indexing scan, non-power-of-two");
+	StreamCompaction::SharedAndIndexing::scan(NPOT, c, a);
+	printElapsedTime(StreamCompaction::SharedAndIndexing::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
+	//printArray(NPOT, c, true);
+	printCmpResult(NPOT, b, c);
 
     printf("\n");
     printf("*****************************\n");
