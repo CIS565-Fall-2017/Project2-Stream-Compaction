@@ -10,6 +10,8 @@ namespace StreamCompaction {
 
 		__global__ void downSweep(int n, int factorPlusOne, int factor, int *idata);
 
+		__global__ void resizeArray(int n, int new_n, int *idata);
+
         void scan(int n, int *odata, const int *idata);
 
         int compact(int n, int *odata, const int *idata);

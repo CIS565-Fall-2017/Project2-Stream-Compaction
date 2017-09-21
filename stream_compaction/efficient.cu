@@ -16,35 +16,71 @@ namespace StreamCompaction {
 		{
 			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
 
-			if (index < n)
-			{
-				if (index % factorPlusOne == 0)
-				{
-					idata[index + factorPlusOne - 1] += idata[index + factor - 1];
-				}
+			//if (index < n)
+			//{
+			//	if (index % factorPlusOne == 0)
+			//	{
+			//		idata[index + factorPlusOne - 1] += idata[index + factor - 1];
+			//	}
 
-				//Get it ready for downsweep
-				//if (index == n - 1)
+			//	//Get it ready for downsweep
+			//	//if (index == n - 1)
+			//	//{
+			//	//	idata[index] = 0;
+			//	//}
+			//}
+
+
+
+			int newIndex = (factorPlusOne * (index + 1)) - 1;
+			if (newIndex < n)
+			{
+				idata[newIndex] += idata[newIndex - factor];
+
+				//if (newIndex == n - 1)
 				//{
-				//	idata[index] = 0;
+				//	idata[newIndex] = 0;
 				//}
 			}
+
 		}//end upSweep function
 
 		__global__ void downSweep(int n, int factorPlusOne, int factor, int *idata)
 		{
-			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
+			//int index = (blockIdx.x * blockDim.x) + threadIdx.x;
 
-			if (index < n)
+			//if (index < n)
+			//{
+			//	if (index % factorPlusOne == 0)
+			//	{
+			//		int leftChild = idata[index + factor - 1];
+			//		idata[index + factor - 1] = idata[index + factorPlusOne - 1];
+			//		idata[index + factorPlusOne - 1] += leftChild;
+			//	}
+			//}
+
+			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
+			int newIndex = (factorPlusOne * (index + 1)) - 1;
+
+			if (newIndex < n)
 			{
-				if (index % factorPlusOne == 0)
-				{
-					int leftChild = idata[index + factor - 1];
-					idata[index + factor - 1] = idata[index + factorPlusOne - 1];
-					idata[index + factorPlusOne - 1] += leftChild;
-				}
+				int leftChild = idata[newIndex - factor];
+				idata[newIndex - factor] = idata[newIndex];
+				idata[newIndex] += leftChild;
 			}
 		}//end downSweep function
+
+
+		__global__ void resizeArray(int n, int new_n, int *idata)
+		{
+			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
+
+			if (index < new_n && index >= n)
+			{
+				idata[index] = 0;
+			}
+		}
+
 
         /**
          * Performs prefix-sum (aka scan) on idata, storing the result into odata.
@@ -65,19 +101,19 @@ namespace StreamCompaction {
 			
 			//If non-power-of-two sized array, round to next power of two
 			int new_n = 1 << ilog2ceil(n);
-			int *new_idata = (int *)malloc(sizeof(int) * new_n);
+			//int *new_idata = (int *)malloc(sizeof(int) * new_n);
 
-			for (int i = 0; i < new_n; i++)
-			{
-				if (i < n)
-				{
-					new_idata[i] = idata[i];
-				}
-				else
-				{
-					new_idata[i] = 0;
-				}
-			}
+			//for (int i = 0; i < new_n; i++)
+			//{
+			//	if (i < n)
+			//	{
+			//		new_idata[i] = idata[i];
+			//	}
+			//	else
+			//	{
+			//		new_idata[i] = 0;
+			//	}
+			//}
 			
 
 			dim3 fullBlocksPerGrid((new_n + blockSize - 1) / blockSize);
@@ -87,8 +123,13 @@ namespace StreamCompaction {
 			checkCUDAError("cudaMalloc inArray failed!");
 
 			//Copy input data to GPU
-			cudaMemcpy(inArray, new_idata, sizeof(int) * new_n, cudaMemcpyHostToDevice);
+			//cudaMemcpy(inArray, new_idata, sizeof(int) * new_n, cudaMemcpyHostToDevice);
 			//cudaThreadSynchronize();
+
+
+			cudaMemcpy(inArray, idata, sizeof(int) * new_n, cudaMemcpyHostToDevice);
+			resizeArray<<<fullBlocksPerGrid, blockSize>>>(n, new_n, inArray);
+
 			
 			bool timerHasStartedElsewhere = false;
 			try
@@ -134,7 +175,7 @@ namespace StreamCompaction {
 			//Free the arrays
 			//delete[] new_idata;
 
-			free(new_idata);
+			//free(new_idata);
 
 			cudaFree(inArray);
         }//end scan function 
@@ -152,19 +193,19 @@ namespace StreamCompaction {
 			// TODO
 			
 			int new_n = 1 << ilog2ceil(n);
-			int *new_idata = (int *)malloc(sizeof(int) * new_n);
+			//int *new_idata = (int *)malloc(sizeof(int) * new_n);
 
-			for (int i = 0; i < new_n; i++)
-			{
-				if (i < n)
-				{
-					new_idata[i] = idata[i];
-				}
-				else
-				{
-					new_idata[i] = 0;
-				}
-			}
+			//for (int i = 0; i < new_n; i++)
+			//{
+			//	if (i < n)
+			//	{
+			//		new_idata[i] = idata[i];
+			//	}
+			//	else
+			//	{
+			//		new_idata[i] = 0;
+			//	}
+			//}
 
 			dim3 fullBlocksPerGrid((new_n + blockSize - 1) / blockSize);
 			
@@ -174,9 +215,6 @@ namespace StreamCompaction {
 			checkCUDAError("cudaMalloc inArray failed!");
 			cudaMalloc((void**)&boolsArray, new_n * sizeof(int));
 			checkCUDAError("cudaMalloc boolsArray failed!");
-
-			//int* scan_in = new int[n];
-			//int* scan_out = new int[n];
 
 			int* scan_in = (int *)malloc(sizeof(int) * new_n);
 			int* scan_out = (int *)malloc(sizeof(int) * new_n);
@@ -192,7 +230,10 @@ namespace StreamCompaction {
 
 
 			//Copy input data to GPU
-			cudaMemcpy(inArray, new_idata, sizeof(int) * new_n, cudaMemcpyHostToDevice);
+			//cudaMemcpy(inArray, new_idata, sizeof(int) * new_n, cudaMemcpyHostToDevice);
+
+			cudaMemcpy(inArray, idata, sizeof(int) * new_n, cudaMemcpyHostToDevice);
+			resizeArray<<<fullBlocksPerGrid, blockSize>>>(n, new_n, inArray);
 
 			timer().startGpuTimer();
 
@@ -223,11 +264,10 @@ namespace StreamCompaction {
 
 			//SCATTER OUT ISNT GONNA BE THE SAME SIZE AS N
 			//Should I replace n with numPassedElements? 
-			cudaMemcpy(odata, scatter_out, sizeof(int) * new_n, cudaMemcpyDeviceToHost);
+			cudaMemcpy(odata, scatter_out, sizeof(int) * numPassedElements, cudaMemcpyDeviceToHost);
 
 			//Free the arrays
-			//delete[] scan_in;
-			//delete[] scan_out;
+			//free(new_idata);
 			free(scan_in);
 			free(scan_out);
 

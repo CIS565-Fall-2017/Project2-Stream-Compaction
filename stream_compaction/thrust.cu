@@ -39,7 +39,6 @@ namespace StreamCompaction {
 
 			//Create host vectors
 			thrust::host_vector<int> host_vector_in(n);
-			//thrust::host_vector<int> host_vector_out(n);
 																
 			//Use thrust::copy to copy data between host and device
 			thrust::copy(idata, idata + n, host_vector_in.begin());
@@ -48,6 +47,11 @@ namespace StreamCompaction {
 			//Cast the host vector to device vector
 			thrust::device_vector<int> dev_vector_in = host_vector_in;
 			thrust::device_vector<int> dev_vector_out(n);// = host_vector_out;
+
+
+			//Can also do it this way -- but isn't any faster
+			//thrust::device_vector<int> dev_vector_in(idata, idata + n);
+			//thrust::device_vector<int> dev_vector_out(odata, odata + n);
 
 			timer().startGpuTimer();
 
