@@ -16,7 +16,7 @@ namespace StreamCompaction {
 		{
 			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
 
-			if (index <= addTimes)
+			if (index < addTimes)
 			{
 				int newIndex = (factorPlusOne * (index + 1)) - 1;
 
@@ -39,7 +39,7 @@ namespace StreamCompaction {
 		{
 			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
 
-			if (index <= addTimes)
+			if (index < addTimes)
 			{
 				int newIndex = (factorPlusOne * (index + 1)) - 1;
 

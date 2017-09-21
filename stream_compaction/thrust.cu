@@ -48,14 +48,15 @@ namespace StreamCompaction {
 			thrust::device_vector<int> dev_vector_in = host_vector_in;
 			thrust::device_vector<int> dev_vector_out(n);// = host_vector_out;
 
-
 			//Can also do it this way -- but isn't any faster
 			//thrust::device_vector<int> dev_vector_in(idata, idata + n);
 			//thrust::device_vector<int> dev_vector_out(odata, odata + n);
 
+			//Placing an exclusive_scan call once here outside the timer and once inside the timer block 
+			//apparently neutralizes the difference between POT and NPOT sized arrays 
+
 			timer().startGpuTimer();
 
-			//Place this call inside the timer
 			thrust::exclusive_scan(dev_vector_in.begin(), dev_vector_in.end(), dev_vector_out.begin());
 
 			timer().endGpuTimer();
