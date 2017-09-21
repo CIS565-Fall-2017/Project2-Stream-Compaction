@@ -4,6 +4,7 @@
 #include "efficient.h"
 #include "RadixSort.h"
 
+
 namespace RadixSort {
 	using StreamCompaction::Common::PerformanceTimer;
 	PerformanceTimer& timer()
@@ -72,16 +73,17 @@ namespace RadixSort {
 		checkCUDAError("RadixSort cudaMemcpy failed!");
 
 		timer().startGpuTimer();
-		
+
 		for (int k = 0; k <= numOfBits - 1; k++) {
 			kernGen_b_e_array << <gridDim, blockDim >> > (n, k, b_array, e_array, dev_data);
 
 			cudaMemcpy(host_f_array, e_array, sizeof(int) * n, cudaMemcpyDeviceToHost);
 
 			int totalFalses = host_f_array[n - 1];
-
+			
 			// Get Exclusive scan result as a whole
 			StreamCompaction::Efficient::scan(n, host_f_array, host_f_array);
+			//StreamCompaction::Efficient::scanDynamicShared(n, host_f_array, host_f_array);
 
 			totalFalses += host_f_array[n - 1];
 

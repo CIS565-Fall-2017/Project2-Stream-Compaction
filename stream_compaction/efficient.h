@@ -11,5 +11,7 @@ namespace StreamCompaction {
 		void scanDynamicShared(int n, int *odata, const int *idata);
 
         int compact(int n, int *odata, const int *idata);
+
+		int compactDynamicShared(int n, int *odata, const int *idata);
     }
 }

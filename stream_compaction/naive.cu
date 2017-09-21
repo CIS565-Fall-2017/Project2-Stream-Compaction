@@ -75,8 +75,11 @@ namespace StreamCompaction {
 				__syncthreads();
 			}
 
-			if (thid == blockDim.x - 1) {
+			/*if (thid == blockDim.x - 1) {
 				OriRoot[blockIdx.x] = g_idata[blockOffset + thid] + temp[pout*n + thid];
+			}*/
+			if (thid == 0) {
+				OriRoot[blockIdx.x] = g_idata[blockOffset + n - 1] + temp[pout*n + n - 1];
 			}
 
 			g_odata[blockOffset + thid] = temp[pout*n + thid];	

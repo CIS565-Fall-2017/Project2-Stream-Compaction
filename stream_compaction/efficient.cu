@@ -306,8 +306,7 @@ namespace StreamCompaction {
 			int dMax = ilog2ceil(n);
 			int size = (int)powf(2.0f, (float)dMax);
 
-			int* dev_idata;
-			int* dev_odata;
+			int* dev_data;
 			int* ori_root;
 
 			int dynamicMemoBlockSize = 64;
@@ -315,46 +314,134 @@ namespace StreamCompaction {
 			dim3 blockDim(dynamicMemoBlockSize);
 			dim3 gridDim((size + dynamicMemoBlockSize - 1) / dynamicMemoBlockSize);
 
-			int ori_root_size = (int)powf(2.0f, (float)ilog2ceil(gridDim.x));
-
-			cudaMalloc((void**)&dev_idata, sizeof(int) * size);
+		
+			cudaMalloc((void**)&dev_data, sizeof(int) * size);
 			checkCUDAError("cudaMalloc dev_idata failed!");
-			cudaMalloc((void**)&dev_odata, sizeof(int) * size);
-			checkCUDAError("cudaMalloc dev_odata failed!");
-			cudaMalloc((void**)&ori_root, sizeof(int) * ori_root_size);
+			cudaMalloc((void**)&ori_root, sizeof(int) * gridDim.x);
 			checkCUDAError("cudaMalloc ori_root failed!");
 			cudaDeviceSynchronize();
 
-			kernSetZero << < gridDim, blockDim >> > (size, dev_idata);
+			kernSetZero << < gridDim, blockDim >> > (size, dev_data);
 			checkCUDAError("kernSetZero failed!");
-			kernSetZero << < dim3((ori_root_size + dynamicMemoBlockSize - 1) / dynamicMemoBlockSize), blockDim >> > (ori_root_size, ori_root);
+			kernSetZero << < dim3((gridDim.x + dynamicMemoBlockSize - 1) / dynamicMemoBlockSize), blockDim >> > (gridDim.x, ori_root);
 			checkCUDAError("kernSetZero failed!");
 
-			cudaMemcpy(dev_idata, idata, sizeof(int) * n, cudaMemcpyHostToDevice);
+			cudaMemcpy(dev_data, idata, sizeof(int) * n, cudaMemcpyHostToDevice);
 			checkCUDAError("naive cudaMemcpy failed!");
 
 			int sharedMemoryPerBlockInBytes = dynamicMemoBlockSize * sizeof(int); // Compute This
 
 			timer().startGpuTimer();
 
-			kernScanDynamicShared << <gridDim, blockDim, sharedMemoryPerBlockInBytes >> > (size, dynamicMemoBlockSize, dev_odata, dev_idata, ori_root);
+			kernScanDynamicShared << <gridDim, blockDim, sharedMemoryPerBlockInBytes >> > (size, dynamicMemoBlockSize, dev_data, dev_data, ori_root);
 
 			// TODO : 
 			// Only support maximum size blockSize * blockSize = 64 * 64 = 4096 number support now
 			// and we only scan origin root one time here.
 
-			sharedMemoryPerBlockInBytes = ori_root_size * sizeof(int);
-			kernScanDynamicShared << < dim3(1), dim3(ori_root_size), sharedMemoryPerBlockInBytes >> > (ori_root_size, ori_root_size, ori_root, ori_root, ori_root);
-			kernAddOriRoot << <gridDim, blockDim >> > (size, ori_root, dev_odata);
+			sharedMemoryPerBlockInBytes = gridDim.x * sizeof(int);
+			kernScanDynamicShared << < dim3(1), dim3(gridDim.x), sharedMemoryPerBlockInBytes >> > (gridDim.x, gridDim.x, ori_root, ori_root, ori_root);
+			kernAddOriRoot << <gridDim, blockDim >> > (size, ori_root, dev_data);
 
 			timer().endGpuTimer();
 
-			cudaMemcpy(odata, dev_odata, sizeof(int) * n, cudaMemcpyDeviceToHost);
+			cudaMemcpy(odata, dev_data, sizeof(int) * n, cudaMemcpyDeviceToHost);
+			checkCUDAError("cudaMemcpy failed!");
+
+			cudaFree(dev_data);
+			cudaFree(ori_root);
+		}
+
+
+		int compactDynamicShared(int n, int *odata, const int *idata) {
+			// compact Set-up
+			int* dev_idata;
+			int* dev_odata;
+			int* bools;
+			int* indices;
+			int* dev_count;
+			int count;
+
+			dim3 blockDim(blockSize);
+			dim3 gridDim((n + blockSize - 1) / blockSize);
+
+			cudaMalloc((void**)&dev_idata, n * sizeof(int));
+			checkCUDAError("cudaMalloc dev_idata failed!");
+			cudaMalloc((void**)&dev_odata, n * sizeof(int));
+			checkCUDAError("cudaMalloc dev_odata failed!");
+			cudaMalloc((void**)&bools, n * sizeof(int));
+			checkCUDAError("cudaMalloc bools failed!");
+			cudaMalloc((void**)&dev_count, sizeof(int));
+			checkCUDAError("cudaMalloc dev_count failed!");
+			cudaDeviceSynchronize();
+
+			cudaMemcpy(dev_idata, idata, sizeof(int) * n, cudaMemcpyHostToDevice);
+			checkCUDAError("efficient compact cudaMemcpy failed!");
+
+
+
+			// scan Set-up
+			int dMax = ilog2ceil(n);
+			int size = (int)powf(2.0f, (float)dMax);
+
+			int* ori_root;
+
+			dim3 scan_gridDim((size + blockSize - 1) / blockSize);
+
+			cudaMalloc((void**)&indices, size * sizeof(int));
+			checkCUDAError("cudaMalloc indices failed!");
+			cudaMalloc((void**)&ori_root, sizeof(int) * gridDim.x);
+			checkCUDAError("cudaMalloc ori_root failed!");
+			cudaDeviceSynchronize();
+
+			kernSetZero << < scan_gridDim, blockDim >> > (size, indices);
+			checkCUDAError("kernSetZero failed!");
+			kernSetZero << < dim3((scan_gridDim.x + gridDim.x - 1) / gridDim.x), blockDim >> > (gridDim.x, ori_root);
+			checkCUDAError("kernSetZero failed!");
+
+			int sharedMemoryPerBlockInBytes = blockDim.x * sizeof(int); // Compute This
+
+			timer().startGpuTimer();
+
+			// Step 1 : compute bools array
+			StreamCompaction::Common::kernMapToBoolean << <gridDim, blockDim >> > (n, bools, dev_idata);
+			checkCUDAError("kernMapToBoolean failed!");
+
+			cudaMemcpy(indices, bools, sizeof(int) * n, cudaMemcpyDeviceToDevice);
+			checkCUDAError("cudaMemcpy failed!");
+
+			// Step 2 : exclusive scan indices
+			kernScanDynamicShared << <scan_gridDim, blockDim, sharedMemoryPerBlockInBytes >> > (size, blockDim.x, indices, indices, ori_root);
+
+			sharedMemoryPerBlockInBytes = gridDim.x * sizeof(int);
+			kernScanDynamicShared << < dim3(1), dim3(gridDim.x), sharedMemoryPerBlockInBytes >> > (scan_gridDim.x, scan_gridDim.x, ori_root, ori_root, ori_root);
+			kernAddOriRoot << <scan_gridDim, blockDim >> > (size, ori_root, indices);
+
+
+			// Step 3 : Scatter
+			StreamCompaction::Common::kernScatter << <gridDim, blockDim >> > (n, dev_odata, dev_idata, bools, indices);
+			checkCUDAError("kernScatter failed!");
+
+			kernSetCompactCount << <dim3(1), dim3(1) >> > (n, dev_count, bools, indices);
+			checkCUDAError("kernSetCompactCount failed!");
+
+			timer().endGpuTimer();
+
+
+			cudaMemcpy(&count, dev_count, sizeof(int), cudaMemcpyDeviceToHost);
+			checkCUDAError("cudaMemcpy failed!");
+
+			cudaMemcpy(odata, dev_odata, sizeof(int) * count, cudaMemcpyDeviceToHost);
 			checkCUDAError("cudaMemcpy failed!");
 
 			cudaFree(dev_idata);
 			cudaFree(dev_odata);
+			cudaFree(bools);
+			cudaFree(dev_count);
+			cudaFree(indices);
 			cudaFree(ori_root);
+
+			return count;
 		}
     }
 }
