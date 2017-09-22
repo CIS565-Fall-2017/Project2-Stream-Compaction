@@ -14,5 +14,6 @@ namespace StreamCompaction {
         void scan(const int n, int *odata, const int *idata);
         void scanNoMalloc(const int n, int *dev_idata);
         int compact(const int n, int *odata, const int *idata);
+        int compactNoMalloc(const int n, int *idata);
     }
 }

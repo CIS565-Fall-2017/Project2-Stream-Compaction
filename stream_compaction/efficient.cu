@@ -189,11 +189,14 @@ namespace StreamCompaction {
 				}
 			}//end generate scan
 
-			StreamCompaction::Common::kernScatter<<<gridDim, blockSize>>>(n, dev_odata, dev_idata, dev_bools, dev_indices);
+			//StreamCompaction::Common::kernScatter<<<gridDim, blockSize>>>(n, dev_odata, dev_idata, dev_bools, dev_indices);
+			//StreamCompaction::Common::kernScatter<<<gridDim, blockSize>>>(n, dev_odata, dev_idata, dev_indices);
+			StreamCompaction::Common::kernScatter<<<gridDim, blockSize>>>(n, dev_idata, dev_indices);
 
             timer().endGpuTimer();
 			
-			cudaMemcpy(odata, dev_odata, numbytes_copy, cudaMemcpyDeviceToHost);
+			//cudaMemcpy(odata, dev_odata, numbytes_copy, cudaMemcpyDeviceToHost);
+			cudaMemcpy(odata, dev_idata, numbytes_copy, cudaMemcpyDeviceToHost);
 			checkCUDAError("cudaMemcpy dev_odata to odata failed!");
 
 			int indicesLAST;

@@ -19,7 +19,7 @@ namespace StreamCompaction {
 			data[index] = 0;
 		}
 
-#define AVOIDBANKCONFLICT 1
+#define AVOIDBANKCONFLICT 0
 		__global__ void kernScan(const int shMemEntries, int* idata, int* SUMS) {
 			extern __shared__ int temp[];
 			const int thid_blk = threadIdx.x;
@@ -247,64 +247,57 @@ namespace StreamCompaction {
 			const int pow2roundedsize = 1 << ilog2ceil(n);
 			const int numbytes_pow2roundedsize = pow2roundedsize * sizeof(int);
 			int* dev_idata;
-			int* dev_odata;
-			int* dev_bools;
-			int* dev_indices;
-
 
 			cudaMalloc((void**)&dev_idata, numbytes_copy);
 			checkCUDAError("cudaMalloc dev_idata failed!");
 
-			cudaMalloc((void**)&dev_odata, numbytes_copy);
-			checkCUDAError("cudaMalloc dev_odata failed!");
-
-			cudaMalloc((void**)&dev_bools, numbytes_copy);
-			checkCUDAError("cudaMalloc dev_bools failed!");
-
-			cudaMalloc((void**)&dev_indices, numbytes_pow2roundedsize);
-			checkCUDAError("cudaMalloc dev_indices failed!");
-
 			cudaMemcpy(dev_idata, idata, numbytes_copy, cudaMemcpyHostToDevice);
 			checkCUDAError("cudaMemcpy idata to dev_idata failed!");
 
-			const int gridDim = (n + blockSize - 1) / blockSize;
-
             timer().startGpuTimer();
-
-			StreamCompaction::Common::kernMapToBoolean<<<gridDim, blockSize>>>(n, dev_bools, dev_idata);
-
-			cudaMemcpy(dev_indices, dev_bools, numbytes_copy, cudaMemcpyDeviceToDevice);
-			checkCUDAError("cudaMemcpy from to dev_bools to dev_indices failed!");
-
-			StreamCompaction::SharedAndBank::scanNoMalloc(pow2roundedsize, dev_indices);
-
-
-			StreamCompaction::Common::kernScatter<<<gridDim, blockSize>>>(n, dev_odata, dev_idata, dev_bools, dev_indices);
-
+			const int size = StreamCompaction::SharedAndBank::compactNoMalloc(n, dev_idata);
             timer().endGpuTimer();
 			
-			cudaMemcpy(odata, dev_odata, numbytes_copy, cudaMemcpyDeviceToHost);
+			cudaMemcpy(odata, dev_idata, numbytes_copy, cudaMemcpyDeviceToHost);
 			checkCUDAError("cudaMemcpy dev_odata to odata failed!");
-
-			int indicesLAST;
-			cudaMemcpy(&indicesLAST, dev_indices + n - 1, sizeof(int), cudaMemcpyDeviceToHost);
-			checkCUDAError("cudaMemcpy dev_indices to indicesLAST failed!");
-			int boolsLAST;
-			cudaMemcpy(&boolsLAST, dev_bools + n - 1, sizeof(int), cudaMemcpyDeviceToHost);
-			checkCUDAError("cudaMemcpy dev_bools to boolsLAST failed!");
-			const int size = indicesLAST + boolsLAST;
 
 			cudaFree(dev_idata);
 			checkCUDAError("cudaFree of dev_idata failed!");
 
-			cudaFree(dev_odata);
-			checkCUDAError("cudaFree of dev_odata failed!");
-			
-			cudaFree(dev_bools);
-			checkCUDAError("cudaFree of dev_bools failed!");
+			return size;
+		}
 
-			cudaFree(dev_indices);
-			checkCUDAError("cudaFree of dev_indices failed!");
+		int compactNoMalloc(const int n, int *dev_idata) {
+			const int numbytes_copy = n * sizeof(int);
+			const int pow2roundedsize = 1 << ilog2ceil(n);
+			const int numbytes_pow2roundedsize = pow2roundedsize * sizeof(int);
+			int* dev_boolsThenIndices;
+
+			cudaMalloc((void**)&dev_boolsThenIndices, numbytes_pow2roundedsize);
+			checkCUDAError("cudaMalloc dev_bools failed!");
+
+			int boolsLAST;
+			cudaMemcpyAsync(&boolsLAST, dev_idata + n - 1, sizeof(int), cudaMemcpyDeviceToHost);
+			checkCUDAError("cudaMemcpy dev_bools to boolsLAST failed!");
+
+			const int gridDim = (n + blockSize - 1) / blockSize;
+
+			StreamCompaction::Common::kernMapToBoolean<<<gridDim, blockSize>>>(n, dev_boolsThenIndices, dev_idata);
+
+			StreamCompaction::SharedAndBank::scanNoMalloc(pow2roundedsize, dev_boolsThenIndices);
+			int indicesLAST;
+			cudaMemcpyAsync(&indicesLAST, dev_boolsThenIndices + n - 1, sizeof(int), cudaMemcpyDeviceToHost);
+			checkCUDAError("cudaMemcpy dev_indices to indicesLAST failed!");
+
+			StreamCompaction::Common::kernScatter<<<gridDim, blockSize>>>(n, dev_idata, dev_boolsThenIndices);
+
+			//find the size of our new compacted array
+			cudaDeviceSynchronize();
+			const int size = indicesLAST + (boolsLAST == 0 ? 0 : 1);
+
+			//free everything
+			cudaFree(dev_boolsThenIndices);
+			checkCUDAError("cudaFree of dev_bools failed!");
 
 			return size;
 		}
