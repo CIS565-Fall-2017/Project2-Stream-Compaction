@@ -29,14 +29,14 @@ CUDA Stream Compaction
 ![](https://github.com/XinCastle/Project2-Stream-Compaction/blob/master/img/chart1.png)
 
 **The test data of the chart above is the following:**
-Block Size | Naive Scan | Efficient Scan | Thrust Scan
----|---|---|---
-32 | 0.3818  | 0.1598 |1.0674
-64 | 0.0389  | 0.1575 |1.0808
-128 | 0.0382 | 0.1373 |1.0888
-256 | 0.0387 | 0.1542 |1.0669
-512 | 0.0428 | 0.1398 |1.0899
-1024 | 0.043 | 0.1532 |1.0523
+Block Size | Naive Scan | Efficient Scan | Thrust Scan | CPU Scan
+---|---|---|---|---
+32 | 0.3818  | 0.1598 |1.0674 |0.0019
+64 | 0.0389  | 0.1575 |1.0808 |0.0018
+128 | 0.0382 | 0.1373 |1.0888 |0.0019
+256 | 0.0387 | 0.1542 |1.0669 |0.0018
+512 | 0.0428 | 0.1398 |1.0899 |0.0019
+1024 | 0.043 | 0.1532 |1.0523 |0.0018
 
 From the data I get and the chart above, we can tell that for CPU scan, the blocksize doesn't change the performance. For naive scan, its best blocksize is 128. For efficient scan, its best blocksize is 128. As for thrust scan, its best blocksize is 1024.
 
