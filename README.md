@@ -29,6 +29,7 @@ CUDA Stream Compaction
 ![](https://github.com/XinCastle/Project2-Stream-Compaction/blob/master/img/chart1.png)
 
 **The test data of the chart above is the following:**
+-------------
 Block Size | Naive Scan | Efficient Scan | Thrust Scan | CPU Scan
 ---|---|---|---|---
 32 | 0.3818  | 0.1598 |1.0674 |0.0019
