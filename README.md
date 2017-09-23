@@ -37,6 +37,7 @@ Block Size | Naive Scan | Efficient Scan | Thrust Scan
 256 | 0.0387 | 0.1542 |1.0669
 512 | 0.0428 | 0.1398 |1.0899
 1024 | 0.043 | 0.1532 |1.0523
+
 From the data I get and the chart above, we can tell that for CPU scan, the blocksize doesn't change the performance. For naive scan, its best blocksize is 128. For efficient scan, its best blocksize is 128. As for thrust scan, its best blocksize is 1024.
 
 
