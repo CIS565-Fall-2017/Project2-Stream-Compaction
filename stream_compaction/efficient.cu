@@ -3,6 +3,12 @@
 #include "common.h"
 #include "efficient.h"
 
+#define NUM_BANKS 32
+#define LOG_NUM_BANKS 5
+#define CONFLICT_FREE_OFFSET(n) \
+    ((n) >> NUM_BANKS + (n) >> (2 * LOG_NUM_BANKS))
+
+
 namespace StreamCompaction {
     namespace Efficient {
         using StreamCompaction::Common::PerformanceTimer;
@@ -67,27 +73,42 @@ namespace StreamCompaction {
 		}
 
 		/// ------------------- EX : Dynamic Shared Memo ----------------------
-		__global__ void kernScanDynamicShared(int N, int n, int *g_odata, int *g_idata, int *OriRoot) {
+		__global__ void kernScanDynamicShared(int n, int *g_odata, int *g_idata, int *OriRoot) {
 			extern __shared__ int temp[];
 
-			int index = threadIdx.x + (blockIdx.x * blockDim.x);
-			if (index >= N) {
-				return;
-			}
+			//int index = threadIdx.x + (blockIdx.x * blockDim.x);
+			//if (index >= N) {
+			//	return;
+			//}
 
 			int thid = threadIdx.x;
 			// assume it's always a 1D block
-			int blockOffset = blockDim.x * blockIdx.x;
+			int blockOffset = 2 * blockDim.x * blockIdx.x;
 			int offset = 1;
 
-			temp[thid] = g_idata[blockOffset + thid];
+			//temp[2 * thid] = g_idata[blockOffset + 2 * thid];
+			//temp[2 * thid + 1] = g_idata[blockOffset + 2 * thid + 1];
+			int ai = thid;
+			int bi = thid + (n / 2);
+			int bankOffsetA = CONFLICT_FREE_OFFSET(ai);
+			int bankOffsetB = CONFLICT_FREE_OFFSET(bi);
+			temp[ai + bankOffsetA] = g_idata[blockOffset + ai];
+			temp[bi + bankOffsetB] = g_idata[blockOffset + bi];
+
+
 
 			// UP-sweep
 			for (int d = n >> 1; d > 0; d >>= 1) {
 				__syncthreads();
 				if (thid < d) {
+					//int ai = offset * (2 * thid + 1) - 1;
+					//int bi = offset * (2 * thid + 2) - 1;
 					int ai = offset * (2 * thid + 1) - 1;
-					int bi = offset * (2 * thid + 2) - 1;
+					int bi = offset * (2 * thid + 2) - 1; 
+					ai += CONFLICT_FREE_OFFSET(ai);
+					bi += CONFLICT_FREE_OFFSET(bi);
+
+
 					temp[bi] += temp[ai];
 				}
 				offset *= 2;
@@ -97,15 +118,20 @@ namespace StreamCompaction {
 			// save origin root and set it to zero
 			if (thid == 0) { 
 				OriRoot[blockIdx.x] = temp[n - 1];
-				temp[n - 1] = 0;
+				//temp[n - 1] = 0;
+				temp[n - 1 + CONFLICT_FREE_OFFSET(n - 1)] = 0;
 			}
 
 			for (int d = 1; d < n; d *= 2) {
 				offset >>= 1;
 				__syncthreads();
 				if (thid < d) {
+					//int ai = offset * (2 * thid + 1) - 1;
+					//int bi = offset * (2 * thid + 2) - 1;
 					int ai = offset * (2 * thid + 1) - 1;
 					int bi = offset * (2 * thid + 2) - 1;
+					ai += CONFLICT_FREE_OFFSET(ai);
+					bi += CONFLICT_FREE_OFFSET(bi);
 
 					int t = temp[ai];
 					temp[ai] = temp[bi];
@@ -113,7 +139,10 @@ namespace StreamCompaction {
 				}
 			}
 			__syncthreads();
-			g_odata[blockOffset + thid] = temp[thid];
+			//g_odata[blockOffset + 2 * thid] = temp[2 * thid];
+			//g_odata[blockOffset + 2 * thid + 1] = temp[2 * thid + 1];
+			g_odata[blockOffset + ai] = temp[ai + bankOffsetA];
+			g_odata[blockOffset + bi] = temp[bi + bankOffsetB];
 		}
 
 		__global__ void kernAddOriRoot(int N, int* OriRoot, int* dev_odata) {
@@ -331,13 +360,17 @@ namespace StreamCompaction {
 
 			timer().startGpuTimer();
 
-			kernScanDynamicShared << <gridDim, blockDim, sharedMemoryPerBlockInBytes >> > (size, dynamicMemoBlockSize, dev_data, dev_data, ori_root);
+			//kernScanDynamicShared << <gridDim, blockDim, sharedMemoryPerBlockInBytes >> > (size, dynamicMemoBlockSize, dev_data, dev_data, ori_root);
+			kernScanDynamicShared << <gridDim, dim3(blockDim.x / 2), sharedMemoryPerBlockInBytes >> > (dynamicMemoBlockSize, dev_data, dev_data, ori_root);
+
 
 			sharedMemoryPerBlockInBytes = gridDim.x * sizeof(int);
 			// We only do scan of scan ONE time here
 			// Actually, it should be a while loop here
 			// This process should happen until root number we get < blockDim.x
-			kernScanDynamicShared << < dim3(1), dim3(gridDim.x), sharedMemoryPerBlockInBytes >> > (gridDim.x, gridDim.x, ori_root, ori_root, ori_root);
+			//kernScanDynamicShared << < dim3(1), dim3(gridDim.x), sharedMemoryPerBlockInBytes >> > (gridDim.x, gridDim.x, ori_root, ori_root, ori_root);
+			kernScanDynamicShared << < dim3(1), dim3(gridDim.x / 2), sharedMemoryPerBlockInBytes >> > (gridDim.x, ori_root, ori_root, ori_root);
+
 			kernAddOriRoot << <gridDim, blockDim >> > (size, ori_root, dev_data);
 
 			timer().endGpuTimer();
@@ -407,13 +440,15 @@ namespace StreamCompaction {
 			checkCUDAError("cudaMemcpy failed!");
 
 			// Step 2 : exclusive scan indices
-			kernScanDynamicShared << <scan_gridDim, blockDim, sharedMemoryPerBlockInBytes >> > (size, blockDim.x, indices, indices, ori_root);
+			//kernScanDynamicShared << <scan_gridDim, blockDim, sharedMemoryPerBlockInBytes >> > (size, blockDim.x, indices, indices, ori_root);
+			kernScanDynamicShared << <scan_gridDim, dim3(blockDim.x / 2), sharedMemoryPerBlockInBytes >> > (blockDim.x, indices, indices, ori_root);
 
 			sharedMemoryPerBlockInBytes = gridDim.x * sizeof(int);
 			// We only do scan of scan ONE time here
 			// Actually, it should be a while loop here
 			// This process should happen until root number we get < blockDim.x
-			kernScanDynamicShared << < dim3(1), dim3(gridDim.x), sharedMemoryPerBlockInBytes >> > (scan_gridDim.x, scan_gridDim.x, ori_root, ori_root, ori_root);
+			//kernScanDynamicShared << < dim3(1), dim3(gridDim.x), sharedMemoryPerBlockInBytes >> > (scan_gridDim.x, scan_gridDim.x, ori_root, ori_root, ori_root);
+			kernScanDynamicShared << < dim3(1), dim3(gridDim.x / 2), sharedMemoryPerBlockInBytes >> > (scan_gridDim.x, ori_root, ori_root, ori_root);
 			kernAddOriRoot << <scan_gridDim, blockDim >> > (size, ori_root, indices);
 
 
