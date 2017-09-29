@@ -16,6 +16,7 @@ namespace StreamCompaction {
 		{
 			extern __shared__ int temp[];
 			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
+			if (index >= n / 2) return;
 			int offset = 1;
 
 			// load shared memory
@@ -71,21 +72,22 @@ namespace StreamCompaction {
 			odata[index] += sum;
 		}
 
-		void scan_implementation(int n, int *dev_out, int *sumOfSums) 
+		/**
+		* invariant: n must be power-of-2
+		*/
+		void scan_implementation(int pow2n, int *dev_out, int *sumOfSums) 
 		{
 			int shMemBytes = sizeof(int) * blockSize;
-			int numBlocks = (n + blockSize - 1) / blockSize;
+			int numBlocks = (pow2n + blockSize - 1) / blockSize;
 
-			kernScanShared << <numBlocks, blockSize, shMemBytes >> > (numBlocks * blockSize, dev_out, sumOfSums);
+			kernScanShared << <numBlocks, blockSize, shMemBytes >> > (pow2n, dev_out, sumOfSums);
 			checkCUDAError("kernScanShared 1 failed!");
-			
-			if (n > blockSize) {
-				kernScanShared << <numBlocks, blockSize, shMemBytes >> > (numBlocks, sumOfSums, sumOfSums);
-				checkCUDAError("kernScanShared 2 failed!");
 
-				kernAddSums << <numBlocks, blockSize >> > (pow2n, dev_out, sumOfSums);
-				checkCUDAError("kernAddSums failed!");
-			}
+			kernScanShared << <numBlocks, blockSize, shMemBytes >> > (pow2n, sumOfSums, sumOfSums);
+			checkCUDAError("kernScanShared 2 failed!");
+
+			kernAddSums << <numBlocks, blockSize >> > (pow2n, dev_out, sumOfSums);
+			checkCUDAError("kernAddSums failed!");
 		}
 
 		/**
@@ -96,11 +98,12 @@ namespace StreamCompaction {
 			int *dev_out;
 			int *sumOfSums;
 			int pow2n = 1 << ilog2ceil(n);
+			int block2n = 1 << ilog2ceil(pow2n / blockSize);
 
 			cudaMalloc((void**)&dev_out, pow2n * sizeof(int));
 			checkCUDAError("cudaMalloc dev_out failed!");
 
-			cudaMalloc((void**)&sumOfSums, pow2n / blockSize * sizeof(int));
+			cudaMalloc((void**)&sumOfSums, block2n * sizeof(int));
 			checkCUDAError("cudaMalloc sumOfSums failed!");
 
 			cudaMemset(dev_out, 0, pow2n * sizeof(int));
@@ -140,6 +143,7 @@ namespace StreamCompaction {
 			int *sumOfSums;
 
 			int pow2n = 1 << ilog2ceil(n);
+			int block2n = 1 << ilog2ceil(pow2n / blockSize);
 
 			cudaMalloc((void**)&dbools, pow2n * sizeof(int));
 			checkCUDAError("cudaMalloc dbools failed!");
@@ -168,7 +172,7 @@ namespace StreamCompaction {
 
 			int ret = *num;
 
-			cudaMalloc((void**)&sumOfSums, pow2n / blockSize * sizeof(int));
+			cudaMalloc((void**)&sumOfSums, block2n * sizeof(int));
 			checkCUDAError("cudaMalloc sumOfSums failed!");
 		
 			scan_implementation(pow2n, indices, sumOfSums); // requires power of 2
