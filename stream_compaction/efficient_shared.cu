@@ -16,37 +16,37 @@ namespace StreamCompaction {
 		{
 			extern __shared__ int temp[];
 			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
-			if (index >= n / 2) return;
+			if (index >= n) return;
 			int offset = 1;
 
 			// load shared memory
-			temp[2 * index] = odata[2 * index];
-			temp[2 * index + 1] = odata[2 * index + 1];
+			temp[threadIdx.x] = odata[index];
+			//temp[2 * index + 1] = odata[2 * index + 1];
 
 			// upsweep
-			for (int d = n >> 1; d > 0; d >>= 1) {
+			for (int d = blockSize >> 1; d > 0; d >>= 1) {
 				__syncthreads();
-				if (index < d) {
-					int ai = offset * (2 * index + 1) - 1;
-					int bi = offset * (2 * index + 2) - 1;
+				if (threadIdx.x < d) {
+					int ai = offset * (2 * threadIdx.x + 1) - 1;
+					int bi = offset * (2 * threadIdx.x + 2) - 1;
 
 					temp[bi] += temp[ai];
 				}
 				offset *= 2;
 			}
 
-			if (index == 0) {
-				sumOfSums[blockIdx.x] = temp[n - 1];
-				temp[n - 1] = 0;
+			if (threadIdx.x == 0) {
+				sumOfSums[blockIdx.x] = temp[blockDim.x - 1];
+				temp[blockDim.x - 1] = 0;
 			}
 
 			// downsweep
-			for (int d = 1; d < n; d *= 2) {
+			for (int d = 1; d < blockSize; d *= 2) {
 				offset >>= 1;
 				__syncthreads();
-				if (index < d) {
-					int ai = offset * (2 * index + 1) - 1;
-					int bi = offset * (2 * index + 2) - 1;
+				if (threadIdx.x < d) {
+					int ai = offset * (2 * threadIdx.x + 1) - 1;
+					int bi = offset * (2 * threadIdx.x + 2) - 1;
 
 					int t = temp[ai];
 					temp[ai] = temp[bi];
@@ -56,8 +56,8 @@ namespace StreamCompaction {
 			
 			__syncthreads();
 
-			odata[2 * index] = temp[2 * index];
-			odata[2 * index + 1] = temp[2 * index + 1];
+			odata[index] = temp[threadIdx.x];
+			//odata[2 * index + 1] = temp[2 * index + 1];
 		}
 
 		__global__ void kernAddSums(int n, int *odata, int *sumOfSums)
@@ -75,18 +75,18 @@ namespace StreamCompaction {
 		/**
 		* invariant: n must be power-of-2
 		*/
-		void scan_implementation(int pow2n, int *dev_out, int *sumOfSums) 
+		void scan_implementation(int pow2n, int block2n, int *dev_out, int *sumOfSums) 
 		{
-			int shMemBytes = sizeof(int) * blockSize;
-			int numBlocks = (pow2n + blockSize - 1) / blockSize;
+			int numBlocks1 = (pow2n + blockSize - 1) / blockSize;
+			int numBlocks2 = (block2n + blockSize - 1) / blockSize;
 
-			kernScanShared << <numBlocks, blockSize, shMemBytes >> > (pow2n, dev_out, sumOfSums);
+			kernScanShared << <numBlocks1, blockSize, sizeof(int) * blockSize >> > (pow2n, dev_out, sumOfSums);
 			checkCUDAError("kernScanShared 1 failed!");
 
-			kernScanShared << <numBlocks, blockSize, shMemBytes >> > (pow2n, sumOfSums, sumOfSums);
+			kernScanShared << <numBlocks2, blockSize, sizeof(int) * blockSize >> > (block2n, sumOfSums, sumOfSums);
 			checkCUDAError("kernScanShared 2 failed!");
 
-			kernAddSums << <numBlocks, blockSize >> > (pow2n, dev_out, sumOfSums);
+			kernAddSums << <numBlocks1, blockSize >> > (pow2n, dev_out, sumOfSums);
 			checkCUDAError("kernAddSums failed!");
 		}
 
@@ -113,7 +113,7 @@ namespace StreamCompaction {
 			checkCUDAError("cudaMemcpy dev_out failed!");
 
 			timer().startGpuTimer();
-			scan_implementation(pow2n, dev_out, sumOfSums);
+			scan_implementation(pow2n, block2n, dev_out, sumOfSums);
 			timer().endGpuTimer();
 			checkCUDAError("scan_implementation failed!");
 
@@ -175,7 +175,7 @@ namespace StreamCompaction {
 			cudaMalloc((void**)&sumOfSums, block2n * sizeof(int));
 			checkCUDAError("cudaMalloc sumOfSums failed!");
 		
-			scan_implementation(pow2n, indices, sumOfSums); // requires power of 2
+			scan_implementation(pow2n, block2n, indices, sumOfSums); // requires power of 2
 
 			cudaMemcpy(num, indices + n - 1, sizeof(int), cudaMemcpyDeviceToHost);
 			checkCUDAError("cudaMemcpyDeviceToHost failed!");

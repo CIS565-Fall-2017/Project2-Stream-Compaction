@@ -24,6 +24,7 @@ void checkCUDAErrorFn(const char *msg, const char *file = NULL, int line = -1);
 
 inline int ilog2(int x) {
     int lg = 0;
+	x = std::max(0, x);
     while (x >>= 1) {
         ++lg;
     }
