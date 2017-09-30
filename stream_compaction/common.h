@@ -12,10 +12,11 @@
 
 #define FILENAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #define checkCUDAError(msg) checkCUDAErrorFn(msg, FILENAME, __LINE__)
-#define blockSize 128
+#define blockSize 1024
 #define bankSize 16
 #define log_bankSize 4
-#define conflictFreeOffset(n) ((n) >> bankSize + (n) >> (2 * log_bankSize))
+//#define conflictFreeOffset(n) ((n) >> bankSize + (n) >> (2 * log_bankSize))
+#define conflictFreeOffset(n) 0
 
 /**
  * Check for CUDA errors; print and exit if there was a problem.
@@ -37,10 +38,10 @@ inline int ilog2ceil(int x) {
 
 namespace StreamCompaction {
     namespace Common {
-		__global__ void kernMapToBoolean(int pos2, int n, int *bools, const int *idata);
+		__global__ void kernMapToBoolean(int n, int *bools, const int *idata);
 
         __global__ void kernScatter(int n, int *odata,
-			const int *idata, const int *bools, const int *indices);
+			const int *idata, const int *indices);
 
 	    /**
 	    * This class is used for timing the performance
