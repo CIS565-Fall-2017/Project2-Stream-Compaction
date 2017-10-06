@@ -1,7 +1,7 @@
-CUDA Stream Compaction
+Project 2: CUDA Stream Compaction
 ======================
 
-**University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 2**
+**Course project for CIS 565: GPU Programming and Architecture, University of Pennsylvania**
 
 * Name: Meghana Seshadri
 * Tested on: Windows 10, i7-4870HQ @ 2.50GHz 16GB, GeForce GT 750M 2048MB (personal computer)
@@ -9,7 +9,7 @@ CUDA Stream Compaction
 
 ## Project Overview
 
-The goal of this project was to get an introduction to the GPU stream compaction in CUDA. This algorithm is often used to quickly process large sets of data according to certain conditions - hence very useful in parallel programming. In this project, the stream compaction will remove zero's from an array of int's. 
+The goal of this project was to get an introduction to the GPU stream compaction in CUDA. This algorithm is often used to quickly process large sets of data according to certain conditions - hence very useful in parallel programming. In this project, the stream compaction will remove any instance of a zero from an array of int's. 
 
 
 The following four versions of stream compaction were implemented:
@@ -42,7 +42,7 @@ The following descriptions dive a bit deeper into the different approaches:
 
 
 ### Thrust-Based
-* The Thrust library has a function "Thrust::exclusive_scan()" that we use to compare the above algorithms to.
+* The Thrust library has a "thrust::exclusive_scan()" function that we use to compare the above algorithms to.
 
 
 ## Performance Analysis 
