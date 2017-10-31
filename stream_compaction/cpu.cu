@@ -20,11 +20,13 @@ namespace StreamCompaction {
 		void scan(int n, int *odata, const int *idata, bool time) {
 
 			if (time) timer().startCpuTimer();
-			odata[0] = idata[0];
+			odata[0] = 0;
 
+			//inclusive
 			for (int i = 1; i < n; i++) {
-				odata[i] = idata[i] + odata[i - 1];
+				odata[i] = idata[i-1] + odata[i - 1];
 			}
+
 			if (time) timer().endCpuTimer();
 		}
 		
@@ -55,33 +57,31 @@ namespace StreamCompaction {
          * @returns the number of elements remaining after compaction.
          */
         int compactWithScan(int n, int *odata, const int *idata) {
-
-			int *scanResults = new int[n];
+			int *binaryValues = new int[n];
+			int *scanValues = new int[n];
 			int output = 0;
 
 	        timer().startCpuTimer();
 
 			//create binary array
 			for (int i = 0; i < n; i++) {
-				odata[i] = (idata[i] == 0) ? 0 : 1;
+				binaryValues[i] = (idata[i] == 0) ? 0 : 1;
 			}
 
-			//inclusive
-			scan(n, scanResults, odata, false);
-			
+			//exclusive scan
+			scan(n, scanValues, binaryValues, false);
+
 			//populate odata
-			//check if the 0th value was nonzero
-			if (scanResults[0] == 1) odata[0] = idata[0];
-			//check all subsequent values
-			for (int i = 1; i < n; i++) {
-				output = scanResults[i - 1];
-				if (scanResults[i] != output) odata[output] = idata[output];
+			for (int i = 0; i < n; i++) {
+				if (binaryValues[i] == 1)
+					odata[scanValues[i]] = idata[i];
 			}
 
 	        timer().endCpuTimer();
             
-			output = scanResults[n - 1];
-			delete[] scanResults;
+			output = binaryValues[n-1] == 0 ? scanValues[n-1] : scanValues[n-1] + 1;
+			delete[] scanValues;
+			delete[] binaryValues;
 			return output;
         }
     }

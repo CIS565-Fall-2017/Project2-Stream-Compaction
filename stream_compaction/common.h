@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <chrono>
 #include <stdexcept>
-
+#define blockSize 128
 #define FILENAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #define checkCUDAError(msg) checkCUDAErrorFn(msg, FILENAME, __LINE__)
 
@@ -46,6 +46,8 @@ inline int ilog2ceil(int x) {
 namespace StreamCompaction {
     namespace Common {
         __global__ void kernMapToBoolean(int n, int *bools, const int *idata);
+
+		__global__ void kernInclusiveToExclusive(int n, int *odata, const int *idata);
 
         __global__ void kernScatter(int n, int *odata,
                 const int *idata, const int *bools, const int *indices);
