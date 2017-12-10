@@ -39,7 +39,7 @@ for stride = 1; stride < n {
  
 ```
 
-![](img/Screen Shot 2017-12-10 at 1.06.41 PM.png)
+![](img/naive.png)
 
 Every iteration of the outer loop will sum an element with the element *stride* away. By log2(n) iterations, every element will be full. Unfortunately, while it will only take log(n) kernel launches, each of this will perform n operations. This nlog(n) runtime makes this less work-efficient than the CPU version.
 
@@ -56,7 +56,7 @@ for stride = 2; stride < n {
 }
 ```
 
-![](img/Screen Shot 2017-12-10 at 1.06.56 PM.png)
+![](img/upsweep.png)
 
 ```
 // Downsweep
@@ -70,7 +70,7 @@ for stride = n; stride >= 2 {
 }
 ```
 
-![](img/Screen Shot 2017-12-10 at 1.07.16 PM.png)
+![](img/downsweep.png)
 
 This method allows us to perform n adds on the upsweep, then n adds and n copies on the down, keeping us within the complexity of the CPU version, but still reaping the benefits of the GPU. Let's see how they measure up. This project printed the following text upon execution, which I collected and averaged to create the below graph:
 
