@@ -29,7 +29,7 @@ namespace StreamCompaction {
 			cudaMalloc((void**)&dev_odata, n * sizeof(int));
 			cudaMalloc((void**)&dev_idata, n * sizeof(int));
 			cudaMemcpy(dev_idata, idata, n * sizeof(int), cudaMemcpyHostToDevice);
-			dim3 fullBlocksPerGrid((n + blockSize - 1) / blockSize);
+			
 			dim3 threadsPerBlock(blockSize);
 
 
@@ -37,14 +37,17 @@ namespace StreamCompaction {
 			//actual kernel invocation
 			int maxStride = ilog2ceil(n);
 			for (int i = 1; i <= maxStride; i++) {
-				kernelScan <<<fullBlocksPerGrid, blockSize >>> (dev_odata, dev_idata, n, i);
+				dim3 blocks((n + blockSize - 1) / blockSize);
+				kernelScan <<<blocks, blockSize >>> (dev_odata, dev_idata, n, i);
 				int *temp = dev_idata;
 				dev_idata = dev_odata;
 				dev_odata = temp;
 			}
 
+			dim3 blocks((n + blockSize - 1) / blockSize);
+
 			//this will end with idata holding the info, convert to exclusive
-			Common::kernInclusiveToExclusive <<<fullBlocksPerGrid, blockSize >>> (n, dev_odata, dev_idata);
+			Common::kernInclusiveToExclusive <<<blocks, blockSize >>> (n, dev_odata, dev_idata);
 
 			timer().endGpuTimer();
 

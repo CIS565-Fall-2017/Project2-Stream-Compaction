@@ -13,12 +13,11 @@
 #include <stream_compaction/thrust.h>
 #include "testing_helpers.hpp"
 
-const long long SIZE = 1 << 21; // feel free to change the size of array
+const long long SIZE = 1 << 20; // feel free to change the size of array
 const int NPOT = SIZE - 3; // Non-Power-Of-Two
 int a[SIZE], b[SIZE], c[SIZE];
 
 int main(int argc, char* argv[]) {
-    // Scan tests
 
     printf("\n");
     printf("****************\n");
