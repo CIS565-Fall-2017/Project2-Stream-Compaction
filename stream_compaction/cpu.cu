@@ -42,6 +42,14 @@ namespace StreamCompaction {
 	        timer().endCpuTimer();
         }
 
+		void inScan(int n, int * odata, const int * idata)
+		{
+			odata[0] = idata[0];
+			for (int i = 1; i < n; i++) {
+				odata[i] = odata[i - 1] + idata[i];
+			}
+		}
+
         /**
          * CPU stream compaction without using the scan function.
          *

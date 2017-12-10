@@ -28,14 +28,21 @@ int main(int argc, char* argv[]) {
 	int* a = new int[SIZE];
 	int* c = new int[SIZE];
 
+	int *input_inclusive = new int[SIZE];
+	int *b_inclusive = new int[SIZE];
+	int *c_inclusive = new int[SIZE];
+
     printf("\n");
     printf("********************\n");
 	printf("** SCAN TESTS, %d **\n", atoi(argv[1]));
     printf("********************\n");
 
     genArray(SIZE - 1, a, 10);  // Leave a 0 at the end to test that edge case
+	genArray(SIZE - 1, input_inclusive, 10);
     a[SIZE - 1] = 0;
+	input_inclusive[SIZE - 1] = 0;
     printArray(SIZE, a, true);
+	printArray(SIZE, input_inclusive, true);
 
     // initialize b using StreamCompaction::CPU::scan you implement
     // We use b for further comparison. Make sure your StreamCompaction::CPU::scan is correct.
@@ -46,12 +53,29 @@ int main(int argc, char* argv[]) {
     printElapsedTime(StreamCompaction::CPU::timer().getCpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
     printArray(SIZE, b, true);
 
+	zeroArray(SIZE, b_inclusive);
+	printDesc("cpu inclusive scan, power of two");
+	StreamCompaction::CPU::inScan(SIZE, b_inclusive, input_inclusive);
+	printArray(SIZE, b_inclusive, true);
+
     zeroArray(SIZE, c);
     printDesc("cpu scan, non-power-of-two");
     StreamCompaction::CPU::scan(NPOT, c, a);
     printElapsedTime(StreamCompaction::CPU::timer().getCpuElapsedTimeForPreviousOperation(), "(std::chrono Measured)");
     printArray(NPOT, b, true);
     printCmpResult(NPOT, b, c);
+
+	zeroArray(SIZE, c);
+	printDesc("cpu inclusive scan, non power of two");
+	StreamCompaction::CPU::inScan(SIZE, c, input_inclusive);
+	printArray(SIZE, c, true);
+	printCmpResult(NPOT, b_inclusive, c);
+
+	zeroArray(SIZE, c);
+	printDesc("SM inclusive scan, non power of two");
+	StreamCompaction::Efficient::scanSM(NPOT, c, input_inclusive);
+	printArray(SIZE, c, true);
+	printCmpResult(NPOT, b_inclusive, c);
 
     zeroArray(SIZE, c);
     printDesc("naive scan, power-of-two");
@@ -150,5 +174,6 @@ int main(int argc, char* argv[]) {
 	delete[] a;
 	delete[] b;
 	delete[] c;
-    //system("pause"); // stop Win32 console from closing on exit
+    system
+	("pause"); // stop Win32 console from closing on exit
 }

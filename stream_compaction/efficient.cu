@@ -13,6 +13,93 @@ namespace StreamCompaction {
             return timer;
         }
 
+		__global__ void kernScanSMBC(int n, int *data) {
+			extern __shared__ int smem[];
+			int i = blockIdx.x * blockDim.x + threadIdx.x;
+			if (i >= n) {
+				return;
+			}
+			int padding = i / warpSize;
+			smem[threadIdx.x + padding] = data[i];
+			int temp[1024];
+
+
+
+			for (unsigned int stride = 1; stride < blockDim.x; stride *= 2) {
+				__syncthreads();
+				for (int i = 0; i < 1024; i++) {
+					temp[i] = smem[i];
+				}
+
+				int index = (threadIdx.x + 1 ) * 2 * stride - 1;
+				int prev = index - stride;
+				index += index / warpSize;
+				prev += prev / warpSize;
+				if (index < blockDim.x) {
+					smem[index] += smem[prev];
+				}
+			}
+
+			for (int stride = 1024 / 4; stride > 0; stride /= 2) {
+				__syncthreads();
+				for (int i = 0; i < 1024; i++) {
+					temp[i] = smem[i];
+				}
+				int index = (threadIdx.x + 1 ) * stride * 2 - 1;
+				int next = index + stride;
+				index += index / warpSize;
+				next += next / warpSize;
+				if (next < blockDim.x) {
+					smem[next] += smem[index];
+				}
+			}
+
+			__syncthreads();
+			for (int i = 0; i < 1024; i++) {
+				temp[i] = smem[i];
+			}
+			data[i] = smem[threadIdx.x + padding];
+		}
+
+		__global__ void kernScanSM(int n, int *data) {
+			extern __shared__ int smem[];
+			int i = blockIdx.x * blockDim.x + threadIdx.x;
+			if (i >= n) {
+				return;
+			}
+			smem[threadIdx.x] = data[i];
+			int temp[1024];
+
+
+			for (unsigned int stride = 1; stride < blockDim.x; stride *= 2) {
+				__syncthreads();
+				for (int i = 0; i < 1024; i++) {
+					temp[i] = smem[i];
+				}
+				int index = (threadIdx.x + 1) * 2 * stride - 1;
+				if (index < blockDim.x) {
+					smem[index] += smem[index - stride];
+				}
+			}
+
+			for (int stride = 1024 / 4; stride > 0; stride /= 2) {
+				__syncthreads();
+				for (int i = 0; i < 1024; i++) {
+					temp[i] = smem[i];
+				}
+				int index = (threadIdx.x + 1) * stride * 2 - 1;
+				if (index + stride < blockDim.x) {
+					smem[index + stride] += smem[index];
+				}
+			}
+
+			__syncthreads();
+			for (int i = 0; i < 1024; i++) {
+				temp[i] = smem[i];
+			}
+			data[i] = smem[threadIdx.x];
+		}
+
 		__global__ void kernUpSweep(int n, int offset, int *odata)
 		{
 			int idx = threadIdx.x + blockIdx.x * blockDim.x;
@@ -104,6 +191,25 @@ namespace StreamCompaction {
 			cudaMemcpy(odata, dev_odata, n * sizeof(int), cudaMemcpyDeviceToHost);
 			cudaFree(dev_odata);
         }
+
+		void scanSM(int n, int * odata, const int * idata)
+		{
+			int *dev_odata;
+			dev_odata = nullptr;
+
+			int numToCompute = getPadded(n);
+
+			cudaMalloc(&dev_odata, numToCompute * sizeof(int));
+			cudaMemset(dev_odata, 0, numToCompute * sizeof(int));
+			cudaMemcpy(dev_odata, idata, n * sizeof(int), cudaMemcpyHostToDevice);
+
+			int blockSize = 1024;
+			int blocksPerGrid = (numToCompute + blockSize - 1) / blockSize;
+			kernScanSMBC<< <blocksPerGrid, blockSize, blockSize * sizeof(int) >> > (numToCompute, dev_odata);
+			
+			cudaMemcpy(odata, dev_odata, n * sizeof(int), cudaMemcpyDeviceToHost);
+			cudaFree(dev_odata);
+		}
 
 		//__global__ void kernScanEachBlock(int n, int *a) {
 
